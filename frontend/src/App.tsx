@@ -9,7 +9,8 @@ function Home() {
         </p>
         <h1 className="text-4xl font-bold tracking-tight">Frontend is ready</h1>
         <p className="text-slate-400">
-          React, TypeScript, React Router, React Query, and Tailwind are configured.
+          React, TypeScript, React Router, React Query, and Tailwind are
+          configured.
         </p>
       </section>
     </main>
