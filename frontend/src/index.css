@@ -1,6 +1,35 @@
 @import 'tailwindcss';
 
 @theme {
+  --animate-deal-card: deal-card 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes deal-card {
+    from {
+      opacity: 0;
+      transform: translateY(2rem) rotate(-2deg) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) rotate(0) scale(1);
+    }
+  }
+}
+
+@layer components {
+  label:has(input[type='radio']) {
+    @apply animate-deal-card transition duration-300 hover:-translate-y-1 hover:shadow-xl has-[:checked]:-translate-y-1 has-[:checked]:shadow-xl;
+  }
+
+  label:has(input[type='radio']):nth-child(2) {
+    animation-delay: 80ms;
+  }
+
+  label:has(input[type='radio']):nth-child(3) {
+    animation-delay: 160ms;
+  }
+}
+
+@theme {
   --font-sans: Arial, sans-serif;
 }
 

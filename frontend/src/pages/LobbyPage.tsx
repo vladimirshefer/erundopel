@@ -34,7 +34,7 @@ export default function LobbyPage() {
   }, [code, navigate])
 
   useEffect(() => {
-    if (lobby?.phase !== 'lobby') navigate(`/game/${lobby.code}`)
+  if (lobby && lobby.phase !== 'lobby') navigate(`/game/${lobby.code}`)
   }, [lobby, navigate])
 
   async function joinLobby(event: FormEvent<HTMLFormElement>) {

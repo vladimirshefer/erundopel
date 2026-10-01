@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import { LanguageContextProvider } from './contexts/LanguageContext.tsx'
 import CreateGamePage from './pages/CreateGamePage.tsx'
 import GamePage from './pages/GamePage.tsx'
+import LobbyLoadingPage from './pages/LobbyLoadingPage.tsx'
 import LobbyPage from './pages/LobbyPage.tsx'
 import MainPage from './pages/MainPage.tsx'
 import RulesPage from './pages/RulesPage.tsx'
@@ -18,7 +19,8 @@ export default function App() {
             <Routes>
               <Route path="/" element={<MainPage />} />
               <Route path="/create" element={<CreateGamePage />} />
-              <Route path="/lobby/:code" element={<LobbyPage />} />
+        <Route path="/lobby/:code" element={<LobbyLoadingPage />} />
+        <Route path="/lobby/:code/room" element={<LobbyPage />} />
               <Route path="/game/:code" element={<GamePage />} />
               <Route path="/rules" element={<RulesPage />} />
               <Route path="*" element={<MainPage />} />
