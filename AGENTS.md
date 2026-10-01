@@ -21,4 +21,6 @@
 ### AI-Agents rules
 - Do not create "helper" functions until explicitly asked to.
 - Avoid excessive if-checks in code.
-
+- Do now write stub implementations, use TODO in code. It is ok to have non-working code by the end of the iteration. We will fix that in later iterations.
+- Follow the existing code conventions.
+- 
