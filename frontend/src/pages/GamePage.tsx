@@ -41,8 +41,8 @@ export default function GamePage() {
 
   if (!lobby || !session)
     return (
-      <main>
-        <p>{error || loc('Connecting...')}</p>
+      <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
+        <p className="text-zinc-600">{error || loc('Connecting...')}</p>
       </main>
     )
   const player = lobby.players.find((item) => item.id === session.playerId)
@@ -64,39 +64,39 @@ export default function GamePage() {
   }
 
   return (
-    <main>
-      <h1>
+    <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
+      <h1 className="text-3xl font-black tracking-tight text-zinc-950 sm:text-4xl">
         {loc('Game')} {lobby.code}
       </h1>
-      <p>
+      <p className="mt-3 text-zinc-600">
         {loc('Players')}:{' '}
         {lobby.players.map((item) => `${item.name} (${item.score})`).join(', ')}
       </p>
 
       {lobby.phase === 'lobby' && (
         <>
-          <p>{loc('Send this game code to friends and wait for them here.')}</p>
+          <p className="mt-8 text-zinc-600">{loc('Send this game code to friends and wait for them here.')}</p>
           {isOwner && (
-            <button onClick={() => lobbyRepository.startGame(socket.current!)}>
+            <button className="mt-2 rounded-xl bg-zinc-950 px-5 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-zinc-700" onClick={() => lobbyRepository.startGame(socket.current!)}>
               {loc('Start game')}
             </button>
           )}
-          {!isOwner && <p>{loc('Waiting for the host to start.')}</p>}
+          {!isOwner && <p className="mt-8 text-zinc-600">{loc('Waiting for the host to start.')}</p>}
         </>
       )}
 
       {lobby.phase === 'answering' && (
         <>
-          <h2>{lobby.task?.text}</h2>
+          <h2 className="mt-8 text-2xl font-bold tracking-tight text-zinc-950">{lobby.task?.text}</h2>
           {player?.answered ? (
-            <p>{loc('Answer sent. Waiting for other players.')}</p>
+            <p className="mt-4 text-zinc-600">{loc('Answer sent. Waiting for other players.')}</p>
           ) : (
-            <form onSubmit={submitAnswer}>
-              <label>
+            <form className="mt-5 flex flex-col gap-4" onSubmit={submitAnswer}>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-zinc-800">
                 {loc('Your answer')}
-                <input name="answer" autoFocus />
+                <input className="rounded-xl border border-zinc-300 px-3 py-2.5 outline-none transition focus:border-zinc-950 focus:ring-4 focus:ring-amber-200" name="answer" autoFocus />
               </label>
-              <button>{loc('Send answer')}</button>
+              <button className="rounded-xl bg-amber-300 px-4 py-3 font-bold text-zinc-950 transition hover:-translate-y-0.5 hover:bg-amber-400">{loc('Send answer')}</button>
             </form>
           )}
         </>
@@ -104,24 +104,25 @@ export default function GamePage() {
 
       {lobby.phase === 'voting' && (
         <>
-          <h2>{lobby.task?.text}</h2>
+          <h2 className="mt-8 text-2xl font-bold tracking-tight text-zinc-950">{lobby.task?.text}</h2>
           {player?.voted ? (
-            <p>{loc('Vote sent. Waiting for other players.')}</p>
+            <p className="mt-4 text-zinc-600">{loc('Vote sent. Waiting for other players.')}</p>
           ) : (
-            <form onSubmit={submitVote}>
+            <form className="mt-5 flex flex-col gap-3" onSubmit={submitVote}>
               {lobby.answerOptions?.map((answer) => (
-                <label key={answer.id}>
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 p-4 text-zinc-800 transition hover:border-zinc-950 has-[:checked]:border-zinc-950 has-[:checked]:bg-amber-100" key={answer.id}>
                   <input
                     type="radio"
                     name="answerId"
                     value={answer.id}
+                    className="size-4 accent-zinc-950"
                     required
                     disabled={answer.text === myAnswer}
                   />
                   {answer.text}
                 </label>
               ))}
-              <button>{loc('Vote')}</button>
+              <button className="mt-1 rounded-xl bg-amber-300 px-4 py-3 font-bold text-zinc-950 transition hover:-translate-y-0.5 hover:bg-amber-400">{loc('Vote')}</button>
             </form>
           )}
         </>
@@ -129,8 +130,8 @@ export default function GamePage() {
 
       {lobby.phase === 'results' && (
         <>
-          <h2>{loc('Results')}</h2>
-          <p>
+          <h2 className="mt-8 text-2xl font-bold tracking-tight text-zinc-950">{loc('Results')}</h2>
+          <p className="mt-4 rounded-xl bg-amber-100 p-4 text-zinc-800">
             {loc('Correct answer')}:{' '}
             {
               lobby.answerOptions?.find(
@@ -139,18 +140,18 @@ export default function GamePage() {
             }
           </p>
           {isOwner ? (
-            <button onClick={() => lobbyRepository.nextRound(socket.current!)}>
+            <button className="mt-5 rounded-xl bg-zinc-950 px-5 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-zinc-700" onClick={() => lobbyRepository.nextRound(socket.current!)}>
               {loc('Next round')}
             </button>
           ) : (
-            <p>{loc('Waiting for the host to start the next round.')}</p>
+            <p className="mt-5 text-zinc-600">{loc('Waiting for the host to start the next round.')}</p>
           )}
         </>
       )}
 
-      {error && <p role="alert">{error}</p>}
-      <p>
-        <Link to="/rules">{loc('Rules')}</Link>
+      {error && <p className="mt-5 rounded-xl bg-amber-100 px-4 py-3 text-zinc-900" role="alert">{error}</p>}
+      <p className="mt-8">
+        <Link className="font-semibold text-zinc-700 underline decoration-amber-300 decoration-4 underline-offset-4" to="/rules">{loc('Rules')}</Link>
       </p>
     </main>
   )

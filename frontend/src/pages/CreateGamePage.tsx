@@ -32,18 +32,18 @@ export default function CreateGamePage() {
   }
 
   return (
-    <main>
-      <h1>{loc('Create game')}</h1>
-      <form onSubmit={createGame}>
-        <label>
+    <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
+      <h1 className="text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl">{loc('Create game')}</h1>
+      <form className="mt-8 flex max-w-sm flex-col gap-4" onSubmit={createGame}>
+        <label className="flex flex-col gap-1.5 text-sm font-semibold text-zinc-800">
           {loc('Name')}
-          <input name="name" autoComplete="name" autoFocus />
+          <input className="rounded-xl border border-zinc-300 px-3 py-2.5 outline-none transition focus:border-zinc-950 focus:ring-4 focus:ring-amber-200" name="name" autoComplete="name" autoFocus />
         </label>
-        <button>{loc('Create game')}</button>
+        <button className="rounded-xl bg-zinc-950 px-4 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-zinc-700">{loc('Create game')}</button>
       </form>
-      {error && <p role="alert">{error}</p>}
-      <p>
-        <Link to="/">{loc('Back')}</Link>
+      {error && <p className="mt-4 rounded-xl bg-amber-100 px-4 py-3 text-zinc-900" role="alert">{error}</p>}
+      <p className="mt-8">
+        <Link className="font-semibold text-zinc-700 underline decoration-amber-300 decoration-4 underline-offset-4" to="/">{loc('Back')}</Link>
       </p>
     </main>
   )

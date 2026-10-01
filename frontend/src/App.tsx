@@ -13,13 +13,15 @@ export default function App() {
     <LanguageContextProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<MainPage />} />
-            <Route path="/create" element={<CreateGamePage />} />
-            <Route path="/game/:code" element={<GamePage />} />
-            <Route path="/rules" element={<RulesPage />} />
-            <Route path="*" element={<MainPage />} />
-          </Routes>
+          <div className="flex min-h-screen items-center justify-center bg-amber-300 p-4 sm:p-8">
+            <Routes>
+              <Route path="/" element={<MainPage />} />
+              <Route path="/create" element={<CreateGamePage />} />
+              <Route path="/game/:code" element={<GamePage />} />
+              <Route path="/rules" element={<RulesPage />} />
+              <Route path="*" element={<MainPage />} />
+            </Routes>
+          </div>
         </BrowserRouter>
       </QueryClientProvider>
     </LanguageContextProvider>
