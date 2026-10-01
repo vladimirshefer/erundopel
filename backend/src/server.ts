@@ -1,5 +1,14 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { LobbyError, LobbyManager, type GameStateSnapshot, type TextAnswer } from '@erundopel/core'
+import {
+  LobbyError,
+  LobbyManager,
+  dispatchClientMessage,
+  parseClientMessage,
+  toClientError,
+  type ClientMessage,
+  type ClientSession,
+  type GameStateSnapshot,
+} from '@erundopel/core'
 import { WebSocketServer, WebSocket } from 'ws'
 
 const port = Number.parseInt(process.env.PORT ?? '8787', 10)
@@ -8,15 +17,11 @@ const lobbies = new LobbyManager()
 const clientsByLobby = new Map<string, Set<WebSocket>>()
 const socketByPlayer = new Map<string, WebSocket>()
 
-type Session = { code: string; playerId: string }
-type SocketWithSession = WebSocket & { session?: Session; windowStartedAt: number; messagesInWindow: number }
-type ClientMessage =
-  | { type: 'join'; code: string; playerName: string }
-  | { type: 'reconnect'; code: string; playerId: string; resumeToken: string }
-  | { type: 'leave' }
-  | { type: 'closeLobby' }
-  | { type: 'startTask' }
-  | { type: 'submitAnswer'; answer: TextAnswer }
+type SocketWithSession = WebSocket & {
+  session?: ClientSession
+  windowStartedAt: number
+  messagesInWindow: number
+}
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`)
@@ -66,7 +71,7 @@ websocketServer.on('connection', (socket: SocketWithSession) => {
     try {
       handleMessage(socket, parseClientMessage(raw.toString()))
     } catch (error) {
-      send(socket, errorMessage(error))
+      send(socket, toClientError(error))
     }
   })
 
@@ -78,71 +83,24 @@ server.listen(port, () => {
 })
 
 function handleMessage(socket: SocketWithSession, message: ClientMessage): void {
-  switch (message.type) {
-    case 'join': {
-      if (socket.session) throw new Error('Leave the current lobby before joining another one.')
-      const result = lobbies.execute(message.code, { type: 'join', playerName: message.playerName })
-      const credentials = result.credentials
-      if (!credentials) throw new Error('Join did not return player credentials.')
-      attach(socket, result.state.code, credentials.playerId)
-      send(socket, { type: 'joined', state: result.state, credentials })
-      broadcast(result.state)
-      return
-    }
-    case 'reconnect': {
-      if (socket.session) throw new Error('Leave the current lobby before reconnecting to another one.')
-      const result = lobbies.execute(message.code, {
-        type: 'reconnect',
-        playerId: message.playerId,
-        resumeToken: message.resumeToken,
-      })
-      attach(socket, result.state.code, message.playerId)
-      send(socket, { type: 'resumed', state: result.state })
-      broadcast(result.state)
-      return
-    }
-    case 'leave': {
-      const session = requireSession(socket)
-      const result = lobbies.execute(session.code, { type: 'leave', playerId: session.playerId })
-      detach(socket)
-      send(socket, { type: 'left' })
-      broadcast(result.state)
-      return
-    }
-    case 'closeLobby': {
-      const session = requireSession(socket)
-      const result = lobbies.execute(session.code, { type: 'close', playerId: session.playerId })
-      broadcast(result.state)
-      return
-    }
-    case 'startTask': {
-      const session = requireSession(socket)
-      const result = lobbies.execute(session.code, { type: 'startTask' })
-      broadcast(result.state)
-      return
-    }
-    case 'submitAnswer': {
-      const session = requireSession(socket)
-      const result = lobbies.execute(session.code, {
-        type: 'submitAnswer',
-        playerId: session.playerId,
-        answer: message.answer,
-      })
-      broadcast(result.state)
-      return
-    }
-  }
+  const result = dispatchClientMessage(message, socket.session, (code, command) =>
+    lobbies.execute(code, command),
+  )
+  if (result.detach) detach(socket)
+  if (result.nextSession) attach(socket, result.nextSession)
+  if (result.response) send(socket, result.response)
+  broadcast(result.state)
 }
 
-function attach(socket: SocketWithSession, code: string, playerId: string): void {
+function attach(socket: SocketWithSession, session: ClientSession): void {
   detach(socket, false)
 
-  const previousSocket = socketByPlayer.get(playerId)
-  socket.session = { code, playerId }
-  socketByPlayer.set(playerId, socket)
-  const clients = clientsByLobby.get(code) ?? new Set<WebSocket>()
+  const previousSocket = socketByPlayer.get(session.playerId)
+  socket.session = session
+  socketByPlayer.set(session.playerId, socket)
+  const clients = clientsByLobby.get(session.code) ?? new Set<WebSocket>()
   clients.add(socket)
-  clientsByLobby.set(code, clients)
+  clientsByLobby.set(session.code, clients)
 
   if (previousSocket && previousSocket !== socket) {
     previousSocket.close(4000, 'Connected from another tab.')
@@ -180,11 +138,6 @@ function broadcast(state: GameStateSnapshot): void {
   }
 }
 
-function requireSession(socket: SocketWithSession): Session {
-  if (!socket.session) throw new LobbyError('PLAYER_NOT_FOUND', 'Join a lobby first.')
-  return socket.session
-}
-
 function withinRateLimit(socket: SocketWithSession): boolean {
   const now = Date.now()
   if (now - socket.windowStartedAt >= 1_000) {
@@ -195,46 +148,11 @@ function withinRateLimit(socket: SocketWithSession): boolean {
   return socket.messagesInWindow <= maxMessagesPerSecond
 }
 
-function parseClientMessage(raw: string): ClientMessage {
-  const message: unknown = JSON.parse(raw)
-  if (!message || typeof message !== 'object' || !('type' in message)) {
-    throw new Error('Message must contain a type.')
-  }
-
-  const type = stringField(message, 'type')
-  switch (type) {
-    case 'join':
-      return { type, code: stringField(message, 'code'), playerName: stringField(message, 'playerName') }
-    case 'reconnect':
-      return {
-        type,
-        code: stringField(message, 'code'),
-        playerId: stringField(message, 'playerId'),
-        resumeToken: stringField(message, 'resumeToken'),
-      }
-    case 'leave':
-    case 'closeLobby':
-    case 'startTask':
-      return { type }
-    case 'submitAnswer':
-      return { type, answer: textAnswerField(message, 'answer') }
-    default:
-      throw new Error(`Unknown message type: ${type}`)
-  }
-}
-
 function stringField(value: unknown, field: string): string {
   if (!isRecord(value) || typeof value[field] !== 'string') {
     throw new Error(`${field} must be a string.`)
   }
   return value[field]
-}
-
-function textAnswerField(value: unknown, field: string): TextAnswer {
-  if (!isRecord(value) || !isRecord(value[field]) || typeof value[field].text !== 'string') {
-    throw new Error(`${field}.text must be a string.`)
-  }
-  return { text: value[field].text }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -251,23 +169,11 @@ function send(socket: WebSocket, value: unknown): void {
   if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(value))
 }
 
-function errorMessage(error: unknown): { type: 'error'; error: { code: string; message: string } } {
-  if (error instanceof LobbyError) {
-    return { type: 'error', error: { code: error.code, message: error.message } }
-  }
-  return {
-    type: 'error',
-    error: { code: 'BAD_REQUEST', message: error instanceof Error ? error.message : 'Invalid request.' },
-  }
-}
-
 function respondJson(response: ServerResponse, status: number, body: unknown): void {
   response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
   response.end(JSON.stringify(body))
 }
 
 function respondError(response: ServerResponse, error: unknown): void {
-  const message = errorMessage(error).error
-  const status = error instanceof LobbyError ? 400 : 400
-  respondJson(response, status, { error: message })
+  respondJson(response, 400, { error: toClientError(error).error })
 }

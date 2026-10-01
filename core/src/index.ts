@@ -13,3 +13,14 @@ export {
   type Task,
   type TextAnswer,
 } from './lobby.js'
+export {
+  dispatchClientMessage,
+  parseClientMessage,
+  toClientError,
+  type ClientDispatchResult,
+  type ClientErrorResponse,
+  type ClientMessage,
+  type ClientResponse,
+  type ClientSession,
+  type ExecuteLobbyCommand,
+} from './protocol.js'

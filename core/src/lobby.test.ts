@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { LobbyError, LobbyManager } from './lobby.js'
+import { dispatchClientMessage, parseClientMessage } from './protocol.js'
 
 test('creates a lobby and exposes no reconnect tokens in its public state', () => {
   const manager = new LobbyManager()
@@ -117,4 +118,26 @@ test('does not allow a second answer from the same player', () => {
       }),
     (error: unknown) => error instanceof LobbyError && error.code === 'ANSWER_ALREADY_SUBMITTED',
   )
+})
+
+test('maps WebSocket messages to core commands', () => {
+  const manager = new LobbyManager()
+  const lobby = manager.createLobby({ playerName: 'Vladimir' })
+  const owner = lobby.credentials
+  assert.ok(owner)
+
+  const session = { code: lobby.state.code, playerId: owner.playerId }
+  const started = dispatchClientMessage(
+    parseClientMessage('{"type":"startTask"}'),
+    session,
+    manager.execute.bind(manager),
+  )
+  assert.equal(started.state.phase, 'answering')
+
+  const submitted = dispatchClientMessage(
+    parseClientMessage('{"type":"submitAnswer","answer":{"text":"Мой вариант"}}'),
+    session,
+    manager.execute.bind(manager),
+  )
+  assert.equal(submitted.state.phase, 'completed')
 })

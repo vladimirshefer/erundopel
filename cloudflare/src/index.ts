@@ -1,10 +1,11 @@
 import {
   GameState,
   LobbyError,
+  dispatchClientMessage,
+  parseClientMessage,
+  toClientError,
+  type ClientSession,
   type GameStateSnapshot,
-  type LobbyCommandResult,
-  type PlayerCredentials,
-  type TextAnswer,
 } from '@erundopel/core'
 
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -16,15 +17,7 @@ export interface Env {
   LOBBY: DurableObjectNamespace
 }
 
-type Session = { playerId: string }
-type SocketState = { session?: Session; windowStartedAt: number; messagesInWindow: number }
-type ClientMessage =
-  | { type: 'join'; code: string; playerName: string }
-  | { type: 'reconnect'; code: string; playerId: string; resumeToken: string }
-  | { type: 'leave' }
-  | { type: 'closeLobby' }
-  | { type: 'startTask' }
-  | { type: 'submitAnswer'; answer: TextAnswer }
+type SocketState = { session?: ClientSession; windowStartedAt: number; messagesInWindow: number }
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -107,78 +100,31 @@ export class LobbyDurableObject implements DurableObject {
         socket.close(1008, 'Invalid or excessive messages.')
         return
       }
-      const message = parseClientMessage(event.data)
       const gameState = this.#requireGameState()
-
-      switch (message.type) {
-        case 'join': {
-          if (this.#sockets.get(socket)?.session) {
-            throw new Error('Leave the current lobby before joining another one.')
-          }
-          this.#assertCode(message.code)
-          const result = gameState.execute({ type: 'join', playerName: message.playerName })
-          const credentials = result.credentials
-          if (!credentials) throw new Error('Join did not return player credentials.')
-          this.#attach(socket, credentials.playerId)
-          send(socket, { type: 'joined', state: result.state, credentials })
-          this.#broadcast(result.state)
-          return
-        }
-        case 'reconnect': {
-          if (this.#sockets.get(socket)?.session) {
-            throw new Error('Leave the current lobby before reconnecting to another one.')
-          }
-          this.#assertCode(message.code)
-          const result = gameState.execute({
-            type: 'reconnect',
-            playerId: message.playerId,
-            resumeToken: message.resumeToken,
-          })
-          this.#attach(socket, message.playerId)
-          send(socket, { type: 'resumed', state: result.state })
-          this.#broadcast(result.state)
-          return
-        }
-        case 'leave': {
-          const result = gameState.execute({ type: 'leave', playerId: this.#requireSession(socket).playerId })
-          this.#detach(socket)
-          send(socket, { type: 'left' })
-          this.#broadcast(result.state)
-          return
-        }
-        case 'closeLobby': {
-          const result = gameState.execute({ type: 'close', playerId: this.#requireSession(socket).playerId })
-          this.#broadcast(result.state)
-          return
-        }
-        case 'startTask': {
-          this.#requireSession(socket)
-          const result = gameState.execute({ type: 'startTask' })
-          this.#broadcast(result.state)
-          return
-        }
-        case 'submitAnswer': {
-          const result = gameState.execute({
-            type: 'submitAnswer',
-            playerId: this.#requireSession(socket).playerId,
-            answer: message.answer,
-          })
-          this.#broadcast(result.state)
-          return
-        }
-      }
+      const result = dispatchClientMessage(
+        parseClientMessage(event.data),
+        this.#sockets.get(socket)?.session,
+        (code, command) => {
+          this.#assertCode(code)
+          return gameState.execute(command)
+        },
+      )
+      if (result.detach) this.#detach(socket)
+      if (result.nextSession) this.#attach(socket, result.nextSession)
+      if (result.response) send(socket, result.response)
+      this.#broadcast(result.state)
     } catch (error) {
-      send(socket, { type: 'error', error: toError(error) })
+      send(socket, toClientError(error))
     }
   }
 
-  #attach(socket: WebSocket, playerId: string): void {
+  #attach(socket: WebSocket, session: ClientSession): void {
     this.#detach(socket, false)
-    const previousSocket = this.#socketByPlayer.get(playerId)
+    const previousSocket = this.#socketByPlayer.get(session.playerId)
     const state = this.#sockets.get(socket)
     if (!state) return
-    state.session = { playerId }
-    this.#socketByPlayer.set(playerId, socket)
+    state.session = session
+    this.#socketByPlayer.set(session.playerId, socket)
     if (previousSocket && previousSocket !== socket) previousSocket.close(4000, 'Connected from another tab.')
   }
 
@@ -226,12 +172,6 @@ export class LobbyDurableObject implements DurableObject {
     return this.#gameState
   }
 
-  #requireSession(socket: WebSocket): Session {
-    const session = this.#sockets.get(socket)?.session
-    if (!session) throw new LobbyError('PLAYER_NOT_FOUND', 'Join a lobby first.')
-    return session
-  }
-
   #assertCode(code: string): void {
     if (this.#requireGameState().snapshot().code !== code.trim().toUpperCase()) {
       throw new LobbyError('LOBBY_NOT_FOUND', 'Lobby was not found.')
@@ -253,42 +193,11 @@ async function createLobby(env: Env, playerName: string): Promise<Response> {
   return json({ error: { code: 'UNAVAILABLE', message: 'Could not create a lobby.' } }, 503)
 }
 
-function parseClientMessage(raw: string): ClientMessage {
-  const value: unknown = JSON.parse(raw)
-  const type = stringField(value, 'type')
-  switch (type) {
-    case 'join':
-      return { type, code: stringField(value, 'code'), playerName: stringField(value, 'playerName') }
-    case 'reconnect':
-      return {
-        type,
-        code: stringField(value, 'code'),
-        playerId: stringField(value, 'playerId'),
-        resumeToken: stringField(value, 'resumeToken'),
-      }
-    case 'leave':
-    case 'closeLobby':
-    case 'startTask':
-      return { type }
-    case 'submitAnswer':
-      return { type, answer: textAnswerField(value, 'answer') }
-    default:
-      throw new Error(`Unknown message type: ${type}`)
-  }
-}
-
 function stringField(value: unknown, field: string): string {
   if (!isRecord(value) || typeof value[field] !== 'string') {
     throw new Error(`${field} must be a string.`)
   }
   return value[field]
-}
-
-function textAnswerField(value: unknown, field: string): TextAnswer {
-  if (!isRecord(value) || !isRecord(value[field]) || typeof value[field].text !== 'string') {
-    throw new Error(`${field}.text must be a string.`)
-  }
-  return { text: value[field].text }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -304,13 +213,8 @@ function send(socket: WebSocket, value: unknown): void {
   if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(value))
 }
 
-function toError(error: unknown): { code: string; message: string } {
-  if (error instanceof LobbyError) return { code: error.code, message: error.message }
-  return { code: 'BAD_REQUEST', message: error instanceof Error ? error.message : 'Invalid request.' }
-}
-
 function errorResponse(error: unknown): Response {
-  return json({ error: toError(error) }, 400)
+  return json({ error: toClientError(error).error }, 400)
 }
 
 function json(body: unknown, status = 200): Response {
