@@ -4,6 +4,7 @@ import {
   type GameStateSnapshot,
   type LobbyCommandResult,
   type PlayerCredentials,
+  type TextAnswer,
 } from '@erundopel/core'
 
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -22,6 +23,8 @@ type ClientMessage =
   | { type: 'reconnect'; code: string; playerId: string; resumeToken: string }
   | { type: 'leave' }
   | { type: 'closeLobby' }
+  | { type: 'startTask' }
+  | { type: 'submitAnswer'; answer: TextAnswer }
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -148,6 +151,21 @@ export class LobbyDurableObject implements DurableObject {
           this.#broadcast(result.state)
           return
         }
+        case 'startTask': {
+          this.#requireSession(socket)
+          const result = gameState.execute({ type: 'startTask' })
+          this.#broadcast(result.state)
+          return
+        }
+        case 'submitAnswer': {
+          const result = gameState.execute({
+            type: 'submitAnswer',
+            playerId: this.#requireSession(socket).playerId,
+            answer: message.answer,
+          })
+          this.#broadcast(result.state)
+          return
+        }
       }
     } catch (error) {
       send(socket, { type: 'error', error: toError(error) })
@@ -250,7 +268,10 @@ function parseClientMessage(raw: string): ClientMessage {
       }
     case 'leave':
     case 'closeLobby':
+    case 'startTask':
       return { type }
+    case 'submitAnswer':
+      return { type, answer: textAnswerField(value, 'answer') }
     default:
       throw new Error(`Unknown message type: ${type}`)
   }
@@ -261,6 +282,13 @@ function stringField(value: unknown, field: string): string {
     throw new Error(`${field} must be a string.`)
   }
   return value[field]
+}
+
+function textAnswerField(value: unknown, field: string): TextAnswer {
+  if (!isRecord(value) || !isRecord(value[field]) || typeof value[field].text !== 'string') {
+    throw new Error(`${field}.text must be a string.`)
+  }
+  return { text: value[field].text }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

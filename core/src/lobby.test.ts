@@ -63,3 +63,58 @@ test('only the creator can close a lobby', () => {
   const closed = manager.execute(lobby.state.code, { type: 'close', playerId: owner.playerId })
   assert.equal(closed.state.closed, true)
 })
+
+test('starts a task and completes after every current player answers once', () => {
+  const manager = new LobbyManager()
+  const lobby = manager.createLobby({ playerName: 'Vladimir' })
+  const owner = lobby.credentials
+  const joined = manager.execute(lobby.state.code, { type: 'join', playerName: 'Anna' })
+  const player = joined.credentials
+  assert.ok(owner)
+  assert.ok(player)
+
+  const started = manager.execute(lobby.state.code, { type: 'startTask' })
+  assert.equal(started.state.phase, 'answering')
+  assert.ok(started.state.task?.text)
+  assert.equal(JSON.stringify(started.state).includes('correctAnswer'), false)
+
+  const firstAnswer = manager.execute(lobby.state.code, {
+    type: 'submitAnswer',
+    playerId: owner.playerId,
+    answer: { text: 'Мой вариант' },
+  })
+  assert.equal(firstAnswer.state.phase, 'answering')
+  assert.equal(firstAnswer.state.players[0]?.answered, true)
+
+  const completed = manager.execute(lobby.state.code, {
+    type: 'submitAnswer',
+    playerId: player.playerId,
+    answer: { text: 'Другой вариант' },
+  })
+  assert.equal(completed.state.phase, 'completed')
+})
+
+test('does not allow a second answer from the same player', () => {
+  const manager = new LobbyManager()
+  const lobby = manager.createLobby({ playerName: 'Vladimir' })
+  const owner = lobby.credentials
+  assert.ok(owner)
+  manager.execute(lobby.state.code, { type: 'join', playerName: 'Anna' })
+
+  manager.execute(lobby.state.code, { type: 'startTask' })
+  manager.execute(lobby.state.code, {
+    type: 'submitAnswer',
+    playerId: owner.playerId,
+    answer: { text: 'Первый вариант' },
+  })
+
+  assert.throws(
+    () =>
+      manager.execute(lobby.state.code, {
+        type: 'submitAnswer',
+        playerId: owner.playerId,
+        answer: { text: 'Второй вариант' },
+      }),
+    (error: unknown) => error instanceof LobbyError && error.code === 'ANSWER_ALREADY_SUBMITTED',
+  )
+})

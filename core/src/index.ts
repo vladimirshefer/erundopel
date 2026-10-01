@@ -4,8 +4,12 @@ export {
   LobbyManager,
   type CreateLobbyInput,
   type GameStateSnapshot,
+  type GamePhase,
   type LobbyCommand,
   type LobbyCommandResult,
   type LobbyPlayer,
   type PlayerCredentials,
+  type PublicTask,
+  type Task,
+  type TextAnswer,
 } from './lobby.js'

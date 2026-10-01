@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { LobbyError, LobbyManager, type GameStateSnapshot } from '@erundopel/core'
+import { LobbyError, LobbyManager, type GameStateSnapshot, type TextAnswer } from '@erundopel/core'
 import { WebSocketServer, WebSocket } from 'ws'
 
 const port = Number.parseInt(process.env.PORT ?? '8787', 10)
@@ -15,6 +15,8 @@ type ClientMessage =
   | { type: 'reconnect'; code: string; playerId: string; resumeToken: string }
   | { type: 'leave' }
   | { type: 'closeLobby' }
+  | { type: 'startTask' }
+  | { type: 'submitAnswer'; answer: TextAnswer }
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`)
@@ -113,6 +115,22 @@ function handleMessage(socket: SocketWithSession, message: ClientMessage): void 
       broadcast(result.state)
       return
     }
+    case 'startTask': {
+      const session = requireSession(socket)
+      const result = lobbies.execute(session.code, { type: 'startTask' })
+      broadcast(result.state)
+      return
+    }
+    case 'submitAnswer': {
+      const session = requireSession(socket)
+      const result = lobbies.execute(session.code, {
+        type: 'submitAnswer',
+        playerId: session.playerId,
+        answer: message.answer,
+      })
+      broadcast(result.state)
+      return
+    }
   }
 }
 
@@ -196,7 +214,10 @@ function parseClientMessage(raw: string): ClientMessage {
       }
     case 'leave':
     case 'closeLobby':
+    case 'startTask':
       return { type }
+    case 'submitAnswer':
+      return { type, answer: textAnswerField(message, 'answer') }
     default:
       throw new Error(`Unknown message type: ${type}`)
   }
@@ -207,6 +228,13 @@ function stringField(value: unknown, field: string): string {
     throw new Error(`${field} must be a string.`)
   }
   return value[field]
+}
+
+function textAnswerField(value: unknown, field: string): TextAnswer {
+  if (!isRecord(value) || !isRecord(value[field]) || typeof value[field].text !== 'string') {
+    throw new Error(`${field}.text must be a string.`)
+  }
+  return { text: value[field].text }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

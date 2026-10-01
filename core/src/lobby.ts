@@ -1,3 +1,5 @@
+import tasks from './tasks.json'
+
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const ROOM_CODE_LENGTH = 6
 const MAX_NAME_LENGTH = 32
@@ -11,7 +13,20 @@ export type LobbyPlayer = Readonly<{
   id: string
   name: string
   connected: boolean
+  answered: boolean
 }>
+
+export type TextAnswer = Readonly<{ text: string }>
+
+export type GamePhase = 'lobby' | 'answering' | 'completed'
+
+export type Task = Readonly<{
+  id: string
+  text: string
+  correctAnswer: TextAnswer
+}>
+
+export type PublicTask = Readonly<Pick<Task, 'id' | 'text'>>
 
 export type GameStateSnapshot = Readonly<{
   code: string
@@ -19,6 +34,8 @@ export type GameStateSnapshot = Readonly<{
   createdAt: number
   revision: number
   closed: boolean
+  phase: GamePhase
+  task?: PublicTask
   players: readonly LobbyPlayer[]
 }>
 
@@ -32,6 +49,8 @@ export type LobbyCommand =
   | Readonly<{ type: 'disconnect'; playerId: string }>
   | Readonly<{ type: 'leave'; playerId: string }>
   | Readonly<{ type: 'close'; playerId: string }>
+  | Readonly<{ type: 'startTask' }>
+  | Readonly<{ type: 'submitAnswer'; playerId: string; answer: TextAnswer }>
 
 export type LobbyCommandResult = Readonly<{
   state: GameStateSnapshot
@@ -54,7 +73,10 @@ export class LobbyError extends Error {
       | 'INVALID_NAME'
       | 'NAME_TAKEN'
       | 'INVALID_CREDENTIALS'
-      | 'FORBIDDEN',
+      | 'FORBIDDEN'
+      | 'INVALID_GAME_PHASE'
+      | 'ANSWER_ALREADY_SUBMITTED'
+      | 'INVALID_ANSWER',
     message: string,
   ) {
     super(message)
@@ -62,13 +84,16 @@ export class LobbyError extends Error {
 }
 
 /**
- * The domain object. New game actions (answer, vote, score) belong here as
- * commands, so transports cannot mutate state around its invariants.
+ * The domain object. The task, correct answer, and player answers stay here;
+ * the public snapshot deliberately exposes only data clients may see.
  */
 export class GameState {
   readonly #players = new Map<string, PlayerRecord>()
   #closed = false
   #revision = 0
+  #phase: GamePhase = 'lobby'
+  #task?: Task
+  readonly #answers = new Map<string, TextAnswer>()
 
   private constructor(
     readonly code: string,
@@ -102,6 +127,10 @@ export class GameState {
         return this.#leave(command.playerId)
       case 'close':
         return this.#close(command.playerId)
+      case 'startTask':
+        return this.#startTask()
+      case 'submitAnswer':
+        return this.#submitAnswer(command.playerId, command.answer)
     }
   }
 
@@ -112,10 +141,13 @@ export class GameState {
       createdAt: this.createdAt,
       revision: this.#revision,
       closed: this.#closed,
+      phase: this.#phase,
+      task: this.#task && { id: this.#task.id, text: this.#task.text },
       players: [...this.#players.values()].map(({ id, name, connected }) => ({
         id,
         name,
         connected,
+        answered: this.#answers.has(id),
       })),
     }
   }
@@ -177,6 +209,7 @@ export class GameState {
     this.#assertOpen()
     this.#findPlayer(playerId)
     this.#players.delete(playerId)
+    this.#completeIfEveryoneAnswered()
     this.#revision += 1
     return { state: this.snapshot() }
   }
@@ -189,6 +222,38 @@ export class GameState {
     this.#closed = true
     this.#revision += 1
     return { state: this.snapshot() }
+  }
+
+  #startTask(): LobbyCommandResult {
+    this.#assertOpen()
+    if (this.#phase !== 'lobby') {
+      throw new LobbyError('INVALID_GAME_PHASE', 'A task has already been started.')
+    }
+    this.#task = tasks[Math.floor(Math.random() * tasks.length)]
+    this.#phase = 'answering'
+    this.#revision += 1
+    return { state: this.snapshot() }
+  }
+
+  #submitAnswer(playerId: string, answer: TextAnswer): LobbyCommandResult {
+    this.#assertOpen()
+    if (this.#phase !== 'answering') {
+      throw new LobbyError('INVALID_GAME_PHASE', 'Answers are not accepted now.')
+    }
+    this.#findPlayer(playerId)
+    if (this.#answers.has(playerId)) {
+      throw new LobbyError('ANSWER_ALREADY_SUBMITTED', 'This player has already submitted an answer.')
+    }
+    this.#answers.set(playerId, normalizeAnswer(answer))
+    this.#completeIfEveryoneAnswered()
+    this.#revision += 1
+    return { state: this.snapshot() }
+  }
+
+  #completeIfEveryoneAnswered(): void {
+    if (this.#phase === 'answering' && [...this.#players.keys()].every((playerId) => this.#answers.has(playerId))) {
+      this.#phase = 'completed'
+    }
   }
 }
 
@@ -260,4 +325,11 @@ function credentialsFor(player: PlayerRecord): PlayerCredentials {
 function createRoomCode(): string {
   const randomValues = crypto.getRandomValues(new Uint8Array(ROOM_CODE_LENGTH))
   return [...randomValues].map((value) => ROOM_ALPHABET[value % ROOM_ALPHABET.length]).join('')
+}
+
+function normalizeAnswer(answer: TextAnswer): TextAnswer {
+  if (!answer || typeof answer.text !== 'string' || !answer.text.trim()) {
+    throw new LobbyError('INVALID_ANSWER', 'Answer text must not be empty.')
+  }
+  return { text: answer.text.trim() }
 }
