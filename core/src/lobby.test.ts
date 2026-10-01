@@ -3,15 +3,14 @@ import test from 'node:test'
 import { LobbyError, LobbyManager } from './lobby.js'
 import { dispatchClientMessage, parseClientMessage } from './protocol.js'
 
-test('creates a lobby and exposes no reconnect tokens in its public state', () => {
+test('creates a lobby with a player id outside its public state', () => {
   const manager = new LobbyManager()
   const result = manager.createLobby({ playerName: 'Vladimir' })
 
   assert.equal(result.state.players.length, 1)
   assert.equal(result.state.players[0]?.name, 'Vladimir')
   assert.equal(result.state.players[0]?.connected, false)
-  assert.ok(result.credentials?.resumeToken)
-  assert.equal(JSON.stringify(result.state).includes('resumeToken'), false)
+  assert.ok(result.credentials?.playerId)
 })
 
 test('joins and reconnects players through validated commands', () => {
@@ -23,27 +22,20 @@ test('joins and reconnects players through validated commands', () => {
   assert.equal(joined.state.players.length, 2)
   assert.ok(credentials)
 
-  const reconnected = manager.execute(lobby.state.code, {
-    type: 'reconnect',
-    playerId: credentials.playerId,
-    resumeToken: credentials.resumeToken,
-  })
+  const reconnected = manager.execute(lobby.state.code, { type: 'reconnect', playerId: credentials.playerId })
   assert.equal(reconnected.state.players[1]?.connected, true)
 })
 
-test('rejects reconnects with a wrong token', () => {
+test('rejects reconnects for an unknown player', () => {
   const manager = new LobbyManager()
   const lobby = manager.createLobby({ playerName: 'Vladimir' })
-  const joined = manager.execute(lobby.state.code, { type: 'join', playerName: 'Anna' })
-
   assert.throws(
     () =>
       manager.execute(lobby.state.code, {
         type: 'reconnect',
-        playerId: joined.credentials?.playerId ?? '',
-        resumeToken: 'wrong-token',
+        playerId: 'unknown-player',
       }),
-    (error: unknown) => error instanceof LobbyError && error.code === 'INVALID_CREDENTIALS',
+    (error: unknown) => error instanceof LobbyError && error.code === 'PLAYER_NOT_FOUND',
   )
 })
 

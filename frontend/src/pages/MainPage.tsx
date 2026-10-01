@@ -1,8 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import lobbyRepository, {
-  type PlayerSession,
-} from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
 export default function MainPage() {
@@ -10,27 +7,12 @@ export default function MainPage() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
 
-  async function joinGame(event: FormEvent<HTMLFormElement>) {
+  function openLobby(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const name = String(form.get('name')).trim()
     const code = String(form.get('code')).trim().toUpperCase()
-    if (!name || !code) return setError(loc('Fill in your name and game code'))
-    try {
-      const connection = await lobbyRepository.joinLobby(code, name, () => {})
-      const credentials = connection.credentials
-      if (!credentials) throw new Error(loc('Could not join game'))
-      localStorage.setItem(
-        'erundopel.session',
-        JSON.stringify({ code, ...credentials } satisfies PlayerSession),
-      )
-      connection.socket.close()
-      navigate(`/game/${code}`)
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : loc('Could not join game'),
-      )
-    }
+    if (!code) return setError(loc('Fill in your game code'))
+    navigate(`/lobby/${code}`)
   }
 
   return (
@@ -42,11 +24,7 @@ export default function MainPage() {
       </p>
       <hr className="my-8 border-zinc-200" />
       <h2 className="text-xl font-bold text-zinc-950">{loc('Join game')}</h2>
-      <form className="mt-4 flex max-w-sm flex-col gap-4" onSubmit={joinGame}>
-        <label className="flex flex-col gap-1.5 text-sm font-semibold text-zinc-800">
-          {loc('Name')}
-          <input className="rounded-xl border border-zinc-300 px-3 py-2.5 outline-none transition focus:border-zinc-950 focus:ring-4 focus:ring-amber-200" name="name" autoComplete="name" />
-        </label>
+      <form className="mt-4 flex max-w-sm flex-col gap-4" onSubmit={openLobby}>
         <label className="flex flex-col gap-1.5 text-sm font-semibold text-zinc-800">
           {loc('Game code')}
           <input className="rounded-xl border border-zinc-300 px-3 py-2.5 uppercase outline-none transition focus:border-zinc-950 focus:ring-4 focus:ring-amber-200" name="code" autoCapitalize="characters" />

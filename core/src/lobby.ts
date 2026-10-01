@@ -4,7 +4,7 @@ const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const ROOM_CODE_LENGTH = 6
 const MAX_NAME_LENGTH = 32
 
-export type PlayerCredentials = Readonly<{ playerId: string; resumeToken: string }>
+export type PlayerCredentials = Readonly<{ playerId: string }>
 export type LobbyPlayer = Readonly<{
   id: string
   name: string
@@ -33,7 +33,7 @@ export type GameStateSnapshot = Readonly<{
 export type CreateLobbyInput = Readonly<{ playerName: string }>
 export type LobbyCommand =
   | Readonly<{ type: 'join'; playerName: string }>
-  | Readonly<{ type: 'reconnect'; playerId: string; resumeToken: string }>
+  | Readonly<{ type: 'reconnect'; playerId: string }>
   | Readonly<{ type: 'disconnect'; playerId: string }>
   | Readonly<{ type: 'leave'; playerId: string }>
   | Readonly<{ type: 'close'; playerId: string }>
@@ -43,7 +43,7 @@ export type LobbyCommand =
   | Readonly<{ type: 'nextTask'; playerId: string }>
 export type LobbyCommandResult = Readonly<{ state: GameStateSnapshot; credentials?: PlayerCredentials }>
 
-type PlayerRecord = { id: string; name: string; resumeToken: string; connected: boolean; score: number }
+type PlayerRecord = { id: string; name: string; connected: boolean; score: number }
 type AnswerRecord = AnswerOption & { playerId?: string }
 
 export class LobbyError extends Error {
@@ -54,7 +54,6 @@ export class LobbyError extends Error {
       | 'PLAYER_NOT_FOUND'
       | 'INVALID_NAME'
       | 'NAME_TAKEN'
-      | 'INVALID_CREDENTIALS'
       | 'FORBIDDEN'
       | 'INVALID_GAME_PHASE'
       | 'ANSWER_ALREADY_SUBMITTED'
@@ -90,7 +89,7 @@ export class GameState {
   execute(command: LobbyCommand): LobbyCommandResult {
     switch (command.type) {
       case 'join': return this.#join(command.playerName)
-      case 'reconnect': return this.#reconnect(command.playerId, command.resumeToken)
+      case 'reconnect': return this.#reconnect(command.playerId)
       case 'disconnect': return this.#setConnected(command.playerId, false)
       case 'leave': return this.#leave(command.playerId)
       case 'close': return this.#close(command.playerId)
@@ -155,9 +154,8 @@ export class GameState {
     return { state: this.snapshot(), credentials: credentialsFor(player) }
   }
 
-  #reconnect(playerId: string, resumeToken: string): LobbyCommandResult {
-    const player = this.#findPlayer(playerId)
-    if (player.resumeToken !== resumeToken) throw new LobbyError('INVALID_CREDENTIALS', 'The reconnect token is invalid.')
+  #reconnect(playerId: string): LobbyCommandResult {
+    this.#findPlayer(playerId)
     return this.#setConnected(playerId, true)
   }
 
@@ -287,10 +285,10 @@ function normalizeName(value: string): string {
 function normalizeCode(value: string): string { return value.trim().toUpperCase() }
 
 function createPlayer(name: string): PlayerRecord {
-  return { id: crypto.randomUUID(), name: normalizeName(name), resumeToken: crypto.randomUUID(), connected: false, score: 0 }
+  return { id: crypto.randomUUID(), name: normalizeName(name), connected: false, score: 0 }
 }
 
-function credentialsFor(player: PlayerRecord): PlayerCredentials { return { playerId: player.id, resumeToken: player.resumeToken } }
+function credentialsFor(player: PlayerRecord): PlayerCredentials { return { playerId: player.id } }
 
 function createRoomCode(): string {
   const randomValues = crypto.getRandomValues(new Uint8Array(ROOM_CODE_LENGTH))

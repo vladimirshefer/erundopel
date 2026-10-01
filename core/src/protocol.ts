@@ -14,7 +14,7 @@ export type ClientSession = Readonly<{
 
 export type ClientMessage =
   | Readonly<{ type: 'join'; code: string; playerName: string }>
-  | Readonly<{ type: 'reconnect'; code: string; playerId: string; resumeToken: string }>
+  | Readonly<{ type: 'reconnect'; code: string; playerId: string }>
   | Readonly<{ type: 'leave' }>
   | Readonly<{ type: 'closeLobby' }>
   | Readonly<{ type: 'startTask' }>
@@ -56,7 +56,6 @@ export function parseClientMessage(raw: string): ClientMessage {
         type,
         code: stringField(message, 'code'),
         playerId: stringField(message, 'playerId'),
-        resumeToken: stringField(message, 'resumeToken'),
       }
     case 'leave':
     case 'closeLobby':
@@ -93,7 +92,6 @@ export function dispatchClientMessage(
       const result = execute(message.code, {
         type: 'reconnect',
         playerId: message.playerId,
-        resumeToken: message.resumeToken,
       })
       return {
         state: result.state,

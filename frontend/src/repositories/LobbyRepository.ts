@@ -19,37 +19,30 @@ export type LobbyState = {
   correctAnswerId?: string
 }
 
-export type PlayerSession = {
-  code: string
-  playerId: string
-  resumeToken: string
-}
+export type PlayerSession = { playerId: string }
 
 type LobbyResponse = {
   type: 'joined' | 'resumed' | 'state'
   state: LobbyState
-  credentials?: Omit<PlayerSession, 'code'>
+  credentials?: PlayerSession
 }
 
 type LobbyConnection = {
   socket: WebSocket
   state: LobbyState
-  credentials?: Omit<PlayerSession, 'code'>
+  credentials?: PlayerSession
 }
 
 export interface LobbyRepository {
   createLobby(
     playerName: string,
-  ): Promise<{ state: LobbyState; credentials: Omit<PlayerSession, 'code'> }>
+  ): Promise<{ state: LobbyState; credentials: PlayerSession }>
   joinLobby(
     code: string,
     playerName: string,
     onState: (state: LobbyState) => void,
   ): Promise<LobbyConnection>
-  reconnect(
-    session: PlayerSession,
-    onState: (state: LobbyState) => void,
-  ): Promise<LobbyConnection>
+  reconnect(code: string, playerId: string, onState: (state: LobbyState) => void): Promise<LobbyConnection>
   startGame(socket: WebSocket): void
   submitAnswer(socket: WebSocket, text: string): void
   vote(socket: WebSocket, answerId: string): void
@@ -65,7 +58,7 @@ export class LobbyRepositoryImpl implements LobbyRepository {
     })
     const body = (await response.json()) as {
       state?: LobbyState
-      credentials?: Omit<PlayerSession, 'code'>
+      credentials?: PlayerSession
       error?: { message: string }
     }
     if (!response.ok || !body.state || !body.credentials)
@@ -81,12 +74,8 @@ export class LobbyRepositoryImpl implements LobbyRepository {
     return this.connect(code, { type: 'join', code, playerName }, onState)
   }
 
-  reconnect(session: PlayerSession, onState: (state: LobbyState) => void) {
-    return this.connect(
-      session.code,
-      { type: 'reconnect', ...session },
-      onState,
-    )
+  reconnect(code: string, playerId: string, onState: (state: LobbyState) => void) {
+    return this.connect(code, { type: 'reconnect', code, playerId }, onState)
   }
 
   startGame(socket: WebSocket) {

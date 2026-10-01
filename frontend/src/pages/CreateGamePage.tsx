@@ -1,8 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import lobbyRepository, {
-  type PlayerSession,
-} from '../repositories/LobbyRepository.ts'
+import lobbyRepository from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
 export default function CreateGamePage() {
@@ -16,14 +14,8 @@ export default function CreateGamePage() {
     if (!name) return setError(loc('Enter your name'))
     try {
       const lobby = await lobbyRepository.createLobby(name)
-      localStorage.setItem(
-        'erundopel.session',
-        JSON.stringify({
-          code: lobby.state.code,
-          ...lobby.credentials,
-        } satisfies PlayerSession),
-      )
-      navigate(`/game/${lobby.state.code}`)
+      localStorage.setItem('erundopel.playerId', lobby.credentials.playerId)
+      navigate(`/lobby/${lobby.state.code}`)
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : loc('Could not create game'),

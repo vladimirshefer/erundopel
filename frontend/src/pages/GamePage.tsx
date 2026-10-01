@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import lobbyRepository, {
   type LobbyState,
-  type PlayerSession,
 } from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
@@ -14,18 +13,15 @@ export default function GamePage() {
   const [error, setError] = useState('')
   const [myAnswer, setMyAnswer] = useState('')
   const socket = useRef<WebSocket | null>(null)
-  const savedSession = localStorage.getItem('erundopel.session')
-  const session = savedSession
-    ? (JSON.parse(savedSession) as PlayerSession)
-    : undefined
+  const playerId = localStorage.getItem('erundopel.playerId')
 
   useEffect(() => {
-    if (!session || session.code !== code) {
-      navigate('/')
+    if (!code || !playerId) {
+      navigate(code ? `/lobby/${code}` : '/')
       return
     }
     lobbyRepository
-      .reconnect(session, setLobby)
+      .reconnect(code, playerId, setLobby)
       .then((connection) => {
         socket.current = connection.socket
       })
@@ -39,14 +35,18 @@ export default function GamePage() {
     return () => socket.current?.close()
   }, [code, navigate])
 
-  if (!lobby || !session)
+  useEffect(() => {
+    if (lobby?.phase === 'lobby') navigate(`/lobby/${lobby.code}`)
+  }, [lobby, navigate])
+
+  if (!lobby || !playerId)
     return (
       <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
         <p className="text-zinc-600">{error || loc('Connecting...')}</p>
       </main>
     )
-  const player = lobby.players.find((item) => item.id === session.playerId)
-  const isOwner = lobby.ownerPlayerId === session.playerId
+  const player = lobby.players.find((item) => item.id === playerId)
+  const isOwner = lobby.ownerPlayerId === playerId
 
   function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
