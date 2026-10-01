@@ -19,6 +19,8 @@ export type ClientMessage =
   | Readonly<{ type: 'closeLobby' }>
   | Readonly<{ type: 'startTask' }>
   | Readonly<{ type: 'submitAnswer'; answer: TextAnswer }>
+  | Readonly<{ type: 'vote'; answerId: string }>
+  | Readonly<{ type: 'nextTask' }>
 
 export type ClientResponse =
   | Readonly<{ type: 'joined'; state: GameStateSnapshot; credentials: PlayerCredentials }>
@@ -59,9 +61,12 @@ export function parseClientMessage(raw: string): ClientMessage {
     case 'leave':
     case 'closeLobby':
     case 'startTask':
+    case 'nextTask':
       return { type }
     case 'submitAnswer':
       return { type, answer: textAnswerField(message, 'answer') }
+    case 'vote':
+      return { type, answerId: stringField(message, 'answerId') }
     default:
       throw new Error(`Unknown message type: ${type}`)
   }
@@ -107,7 +112,7 @@ export function dispatchClientMessage(
     }
     case 'startTask': {
       const currentSession = requireSession(session)
-      return execute(currentSession.code, { type: 'startTask' })
+      return execute(currentSession.code, { type: 'startTask', playerId: currentSession.playerId })
     }
     case 'submitAnswer': {
       const currentSession = requireSession(session)
@@ -116,6 +121,18 @@ export function dispatchClientMessage(
         playerId: currentSession.playerId,
         answer: message.answer,
       })
+    }
+    case 'vote': {
+      const currentSession = requireSession(session)
+      return execute(currentSession.code, {
+        type: 'vote',
+        playerId: currentSession.playerId,
+        answerId: message.answerId,
+      })
+    }
+    case 'nextTask': {
+      const currentSession = requireSession(session)
+      return execute(currentSession.code, { type: 'nextTask', playerId: currentSession.playerId })
     }
   }
 }

@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: ui-rounded, 'Nunito', system-ui, sans-serif;
+  --font-sans: Arial, sans-serif;
 }
 
 body {
-  @apply bg-[#171324] text-[#f8f5ff];
+  @apply m-0 bg-white text-black;
 }

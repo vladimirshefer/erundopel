@@ -1,5 +1,6 @@
 export {
   GameState,
+  type AnswerOption,
   LobbyError,
   LobbyManager,
   type CreateLobbyInput,
