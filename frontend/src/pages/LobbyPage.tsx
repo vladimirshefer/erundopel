@@ -58,6 +58,9 @@ export default function LobbyPage() {
 
   return (
     <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
+      <Link className="text-sm font-semibold text-zinc-700 underline decoration-amber-300 decoration-4 underline-offset-4" to="/">
+        ← {loc('Back to main')}
+      </Link>
       <p className="text-sm font-bold uppercase tracking-widest text-amber-600">{loc('Game code')}</p>
       <h1 className="mt-2 text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl">{code}</h1>
 
