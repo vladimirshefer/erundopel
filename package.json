@@ -8,6 +8,7 @@
     "frontend"
   ],
   "scripts": {
+    "build": "npm run build --workspaces --if-present",
     "dev:backend": "npm run dev --workspace=@erundopel/backend",
     "dev:cloudflare": "npm run dev --workspace=@erundopel/cloudflare",
     "test": "npm run test --workspace=@erundopel/core",
