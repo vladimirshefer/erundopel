@@ -9,8 +9,10 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "build:frontend": "npm run build --workspace=frontend",
     "dev:backend": "npm run dev --workspace=@erundopel/backend",
     "dev:cloudflare": "npm run dev --workspace=@erundopel/cloudflare",
+    "deploy:cloudflare": "npm run build:frontend && npm run deploy --workspace=@erundopel/cloudflare",
     "test": "npm run test --workspace=@erundopel/core",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
