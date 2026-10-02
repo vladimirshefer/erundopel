@@ -91,9 +91,20 @@ export default function LobbyPage() {
     }
   }
 
-  function startGame() {
-    if (!playerId) return
-    socket.current?.send(JSON.stringify({ type: 'start', playerId }))
+  async function startGame() {
+    if (!code || !playerId) return
+
+    try {
+      let activeSocket = socket.current
+      if (activeSocket?.readyState !== WebSocket.OPEN) {
+        const connection = await lobbyRepository.reconnect(code, playerId, setLobby)
+        activeSocket = connection.socket
+        socket.current = activeSocket
+      }
+      activeSocket.send(JSON.stringify({ type: 'start', playerId }))
+    } catch {
+      setError(loc('Could not start game'))
+    }
   }
 
   const players = lobby?.players.filter((player) => player.connected) ?? []
