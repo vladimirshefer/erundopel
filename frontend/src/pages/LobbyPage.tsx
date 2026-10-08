@@ -13,6 +13,7 @@ export default function LobbyPage() {
   const [joinForm, setJoinForm] = useState(false)
   const [canJoin, setCanJoin] = useState(false)
   const [error, setError] = useState('')
+  const [isLinkCopied, setIsLinkCopied] = useState(false)
 
   useEffect(() => {
     if (!code) {
@@ -107,6 +108,13 @@ export default function LobbyPage() {
     }
   }
 
+  async function copyInviteLink() {
+    if (!code) return
+
+    await navigator.clipboard.writeText(`${window.location.origin}/lobby/${code}`)
+    setIsLinkCopied(true)
+  }
+
   const players = lobby?.players.filter((player) => player.connected) ?? []
   const isOwner = lobby?.players[0]?.id === playerId
 
@@ -116,9 +124,20 @@ export default function LobbyPage() {
         ← {loc('Back to main')}
       </Link>
 
-      <p className="mt-6 text-sm font-bold tracking-widest text-amber-600">{loc('Game code')}</p>
-      <h1 className="mt-1 text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl">{code}</h1>
-      <p className="mt-3 text-lg font-semibold text-zinc-600">{loc('Who is playing?')}</p>
+      <section className="mt-6 rounded-3xl bg-zinc-950 p-6 text-white">
+        <p className="text-lg font-black">{loc('Invite players')}</p>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold tracking-widest text-amber-300">{loc('Game code')}</p>
+            <p className="mt-1 text-3xl font-black tracking-widest">{code}</p>
+          </div>
+          <button className="rounded-xl bg-amber-300 px-4 py-3 font-black text-zinc-950 transition hover:-translate-y-0.5 hover:bg-amber-400" onClick={copyInviteLink} type="button">
+            {isLinkCopied ? loc('Link copied') : loc('Copy link')}
+          </button>
+        </div>
+      </section>
+
+      <p className="mt-6 text-lg font-semibold text-zinc-600">{loc('Who is playing?')}</p>
 
       <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         {players.map((player) => (
