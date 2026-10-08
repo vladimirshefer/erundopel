@@ -36,6 +36,11 @@ export default {
       }
     }
 
+    if (request.method === 'GET' && url.pathname.startsWith('/lobbies/')) {
+      const code = url.pathname.slice('/lobbies/'.length)
+      return env.LOBBY.get(env.LOBBY.idFromName(code.toUpperCase())).fetch('https://lobby.internal/state')
+    }
+
     if (request.method === 'GET' && url.pathname === '/ws') {
       const code = url.searchParams.get('code')
       if (!code) return json({ error: { code: 'BAD_REQUEST', message: 'code is required.' } }, 400)
@@ -64,6 +69,10 @@ export class LobbyDurableObject implements DurableObject {
       const created = GameState.create(code, playerName)
       this.#gameState = created.gameState
       return json({ state: created.gameState.snapshot(), credentials: created.credentials }, 201)
+    }
+
+    if (request.method === 'GET' && url.pathname === '/state') {
+      return json({ state: this.#requireGameState().snapshot() })
     }
 
     if (request.method === 'GET' && url.pathname === '/ws') {

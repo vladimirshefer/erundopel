@@ -20,6 +20,7 @@ test('joins and reconnects players through validated commands', () => {
   const credentials = joined.credentials
 
   assert.equal(joined.state.players.length, 2)
+  assert.equal(joined.state.players[1]?.connected, true)
   assert.ok(credentials)
 
   const reconnected = manager.execute(lobby.state.code, { type: 'reconnect', playerId: credentials.playerId })

@@ -42,6 +42,15 @@ const server = createServer(async (request, response) => {
     return
   }
 
+  if (request.method === 'GET' && url.pathname.startsWith('/lobbies/')) {
+    try {
+      respondJson(response, 200, { state: lobbies.getSnapshot(url.pathname.slice('/lobbies/'.length)) })
+    } catch (error) {
+      respondError(response, error)
+    }
+    return
+  }
+
   respondJson(response, 404, { error: { code: 'NOT_FOUND', message: 'Route was not found.' } })
 })
 

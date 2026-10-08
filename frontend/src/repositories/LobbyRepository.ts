@@ -34,6 +34,7 @@ type LobbyConnection = {
 }
 
 export interface LobbyRepository {
+  getLobby(code: string): Promise<LobbyState>
   createLobby(
     playerName: string,
   ): Promise<{ state: LobbyState; credentials: PlayerSession }>
@@ -50,6 +51,13 @@ export interface LobbyRepository {
 }
 
 export class LobbyRepositoryImpl implements LobbyRepository {
+  async getLobby(code: string): Promise<LobbyState> {
+    const response = await fetch(`/lobbies/${encodeURIComponent(code)}`)
+    const body = (await response.json()) as { state?: LobbyState; error?: { message: string } }
+    if (!response.ok || !body.state) throw new Error(body.error?.message ?? 'Could not load game')
+    return body.state
+  }
+
   async createLobby(playerName: string) {
     const response = await fetch('/lobbies', {
       method: 'POST',

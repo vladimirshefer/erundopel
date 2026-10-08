@@ -26,6 +26,10 @@ export default function LobbyPage() {
 
     if (!playerId) {
       setCanJoin(true)
+      lobbyRepository
+        .getLobby(code)
+        .then(setLobby)
+        .catch(() => setError(loc('Could not join game')))
       return
     }
 
@@ -52,7 +56,16 @@ export default function LobbyPage() {
         socket.current = connectedSocket
       })
       .catch(() => {
-        if (active) setCanJoin(true)
+        if (!active) return
+        setCanJoin(true)
+        lobbyRepository
+          .getLobby(code)
+          .then((state) => {
+            if (active) setLobby(state)
+          })
+          .catch(() => {
+            if (active) setError(loc('Could not join game'))
+          })
       })
 
     return () => {
@@ -118,7 +131,7 @@ export default function LobbyPage() {
     setIsLinkCopied(true)
   }
 
-  const players: LobbyPlayer[] = lobby?.players.filter((player) => player.connected) ?? []
+  const players: LobbyPlayer[] = lobby?.players ?? []
   const isOwner: Boolean = lobby?.players[0]?.id === playerId
 
   return (

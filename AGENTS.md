@@ -30,4 +30,4 @@
 - When git committing add message description why the change was mage.
 - Both Backend and Cloudflare setup should work.
 - As a main reference for a project structure organizing use https://github.com/vladimirshefer/ChessGrinder project.
-- 
+- No backend security is required, game state is generally visible and editable by anyone. The client decides which data is visible and what actions are permitted.

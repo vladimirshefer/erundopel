@@ -149,6 +149,7 @@ export class GameState {
       throw new LobbyError('NAME_TAKEN', 'A player with this name is already in the lobby.')
     }
     const player = createPlayer(name)
+    player.connected = true
     this.#players.set(player.id, player)
     this.#revision += 1
     return { state: this.snapshot(), credentials: credentialsFor(player) }
