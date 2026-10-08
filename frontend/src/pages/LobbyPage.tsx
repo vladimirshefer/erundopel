@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { Md5 } from 'ts-md5'
 import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
-import lobbyRepository, { type LobbyState } from '../repositories/LobbyRepository.ts'
+import lobbyRepository, {type LobbyPlayer, type LobbyState} from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
 export default function LobbyPage() {
@@ -117,8 +118,8 @@ export default function LobbyPage() {
     setIsLinkCopied(true)
   }
 
-  const players = lobby?.players.filter((player) => player.connected) ?? []
-  const isOwner = lobby?.players[0]?.id === playerId
+  const players: LobbyPlayer[] = lobby?.players.filter((player) => player.connected) ?? []
+  const isOwner: Boolean = lobby?.players[0]?.id === playerId
 
   return (
     <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
@@ -141,24 +142,30 @@ export default function LobbyPage() {
 
       <p className="mt-6 text-lg font-semibold text-zinc-600">{loc('Who is playing?')}</p>
 
-      <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <section className="mt-6 grid gap-4 sm:grid-cols-2">
         {players.map((player) => (
-          <article className="flex aspect-square flex-col justify-between rounded-3xl bg-amber-300 p-5 text-zinc-950 shadow-lg transition duration-300 hover:-translate-y-1 hover:rotate-1" key={player.id}>
-            <span className="text-3xl">😈</span>
-            <p className="text-xl font-black leading-tight">{player.name}</p>
-            {player.id === lobby?.players[0]?.id && <span className="text-sm font-bold">{loc('Host')}</span>}
+          <article className="flex min-h-48 flex-col justify-between border-4 border-zinc-950 bg-amber-300 p-5 text-zinc-950 shadow-lg transition duration-300 hover:-translate-y-1" key={player.id}>
+            <img
+              alt=""
+              className="size-24 border-2 border-zinc-950 bg-white object-cover sm:size-28"
+              src={`https://gravatar.com/avatar/${Md5.hashStr(player.id)}?d=robohash&s=224`}
+            />
+            <div className="mt-5">
+              <p className="text-2xl font-black leading-tight">{player.name}</p>
+              {player.id === lobby?.players[0]?.id && <span className="mt-2 block text-sm font-bold">{loc('Host')}</span>}
+            </div>
           </article>
         ))}
 
         {canJoin && !joinForm && (
-          <button className="flex aspect-square flex-col items-center justify-center rounded-3xl border-4 border-dashed border-zinc-300 text-zinc-700 transition duration-300 hover:-translate-y-1 hover:border-zinc-950 hover:bg-zinc-100" onClick={() => setJoinForm(true)} type="button">
+          <button className="flex min-h-48 flex-col items-center justify-center border-4 border-dashed border-zinc-300 text-zinc-700 transition duration-300 hover:-translate-y-1 hover:border-zinc-950 hover:bg-zinc-100" onClick={() => setJoinForm(true)} type="button">
             <span className="text-6xl font-black">+</span>
             <span className="mt-1 font-black">{loc('Join game')}</span>
           </button>
         )}
 
         {canJoin && joinForm && (
-          <form className="flex aspect-square flex-col justify-center rounded-3xl bg-zinc-950 p-4 text-white shadow-lg" onSubmit={joinLobby}>
+          <form className="flex min-h-48 flex-col justify-center bg-zinc-950 p-4 text-white shadow-lg" onSubmit={joinLobby}>
             <label className="text-sm font-bold" htmlFor="name">
               {loc('Your name')}
             </label>
