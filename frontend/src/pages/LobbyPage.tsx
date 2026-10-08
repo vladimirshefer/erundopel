@@ -102,7 +102,7 @@ export default function LobbyPage() {
         activeSocket = connection.socket
         socket.current = activeSocket
       }
-      activeSocket.send(JSON.stringify({ type: 'start', playerId }))
+      lobbyRepository.startGame(activeSocket)
     } catch {
       setError(loc('Could not start game'))
     }
