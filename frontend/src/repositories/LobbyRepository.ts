@@ -14,6 +14,7 @@ export type LobbyState = {
   ownerPlayerId: string
   phase: 'lobby' | 'answering' | 'voting' | 'results'
   players: LobbyPlayer[]
+  spectators: LobbyPlayer[]
   task?: { text: string; correctAnswer?: string }
   answerOptions?: AnswerOption[]
   correctAnswerId?: string
@@ -22,7 +23,7 @@ export type LobbyState = {
 export type PlayerSession = { playerId: string }
 
 type LobbyResponse = {
-  type: 'joined' | 'resumed' | 'state'
+  type: 'viewed' | 'spectating' | 'joined' | 'resumed' | 'state'
   state: LobbyState
   credentials?: PlayerSession
 }
@@ -34,15 +35,12 @@ type LobbyConnection = {
 }
 
 export interface LobbyRepository {
-  getLobby(code: string): Promise<LobbyState>
   createLobby(
     playerName: string,
   ): Promise<{ state: LobbyState; credentials: PlayerSession }>
-  joinLobby(
-    code: string,
-    playerName: string,
-    onState: (state: LobbyState) => void,
-  ): Promise<LobbyConnection>
+  viewLobby(code: string, onState: (state: LobbyState) => void): Promise<LobbyConnection>
+  spectate(socket: WebSocket, code: string, playerName: string): Promise<PlayerSession>
+  joinLobby(socket: WebSocket, playerName: string): Promise<PlayerSession>
   reconnect(code: string, playerId: string, onState: (state: LobbyState) => void): Promise<LobbyConnection>
   startGame(socket: WebSocket): void
   submitAnswer(socket: WebSocket, text: string): void
@@ -51,13 +49,6 @@ export interface LobbyRepository {
 }
 
 export class LobbyRepositoryImpl implements LobbyRepository {
-  async getLobby(code: string): Promise<LobbyState> {
-    const response = await fetch(`/lobbies/${encodeURIComponent(code)}`)
-    const body = (await response.json()) as { state?: LobbyState; error?: { message: string } }
-    if (!response.ok || !body.state) throw new Error(body.error?.message ?? 'Could not load game')
-    return body.state
-  }
-
   async createLobby(playerName: string) {
     const response = await fetch('/lobbies', {
       method: 'POST',
@@ -74,12 +65,46 @@ export class LobbyRepositoryImpl implements LobbyRepository {
     return { state: body.state, credentials: body.credentials }
   }
 
-  joinLobby(
-    code: string,
-    playerName: string,
-    onState: (state: LobbyState) => void,
-  ) {
-    return this.connect(code, { type: 'join', code, playerName }, onState)
+  viewLobby(code: string, onState: (state: LobbyState) => void) {
+    return this.connect(code, { type: 'view', code }, onState)
+  }
+
+  spectate(socket: WebSocket, code: string, playerName: string): Promise<PlayerSession> {
+    return new Promise((resolve, reject) => {
+      const onMessage = (event: MessageEvent) => {
+        const response = JSON.parse(event.data) as LobbyResponse | { type: 'error'; error: { message: string } }
+        if (response.type === 'error') {
+          socket.removeEventListener('message', onMessage)
+          reject(new Error(response.error.message))
+          return
+        }
+        if (response.type === 'spectating' && response.credentials) {
+          socket.removeEventListener('message', onMessage)
+          resolve(response.credentials)
+        }
+      }
+      socket.addEventListener('message', onMessage)
+      socket.send(JSON.stringify({ type: 'spectate', code, playerName }))
+    })
+  }
+
+  joinLobby(socket: WebSocket, playerName: string): Promise<PlayerSession> {
+    return new Promise((resolve, reject) => {
+      const onMessage = (event: MessageEvent) => {
+        const response = JSON.parse(event.data) as LobbyResponse | { type: 'error'; error: { message: string } }
+        if (response.type === 'error') {
+          socket.removeEventListener('message', onMessage)
+          reject(new Error(response.error.message))
+          return
+        }
+        if (response.type === 'joined' && response.credentials) {
+          socket.removeEventListener('message', onMessage)
+          resolve(response.credentials)
+        }
+      }
+      socket.addEventListener('message', onMessage)
+      socket.send(JSON.stringify({ type: 'join', playerName }))
+    })
   }
 
   reconnect(code: string, playerId: string, onState: (state: LobbyState) => void) {
@@ -121,7 +146,7 @@ export class LobbyRepositoryImpl implements LobbyRepository {
           return
         }
         onState(response.state)
-        if (response.type === 'joined' || response.type === 'resumed')
+        if (response.type === 'viewed' || response.type === 'spectating' || response.type === 'joined' || response.type === 'resumed')
           resolve({
             socket,
             state: response.state,

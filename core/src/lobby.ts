@@ -3,6 +3,7 @@ import tasks from './tasks.json'
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const ROOM_CODE_LENGTH = 6
 const MAX_NAME_LENGTH = 32
+const MAX_PLAYERS = 100
 
 export type PlayerCredentials = Readonly<{ playerId: string }>
 export type LobbyPlayer = Readonly<{
@@ -29,10 +30,13 @@ export type GameStateSnapshot = Readonly<{
   answerOptions?: readonly AnswerOption[]
   correctAnswerId?: string
   players: readonly LobbyPlayer[]
+  spectators: readonly LobbyPlayer[]
 }>
 export type CreateLobbyInput = Readonly<{ playerName: string }>
 export type LobbyCommand =
-  | Readonly<{ type: 'join'; playerName: string }>
+  | Readonly<{ type: 'view' }>
+  | Readonly<{ type: 'spectate'; playerName: string }>
+  | Readonly<{ type: 'join'; playerName: string; playerId?: string }>
   | Readonly<{ type: 'reconnect'; playerId: string }>
   | Readonly<{ type: 'disconnect'; playerId: string }>
   | Readonly<{ type: 'leave'; playerId: string }>
@@ -43,13 +47,14 @@ export type LobbyCommand =
   | Readonly<{ type: 'nextTask'; playerId: string }>
 export type LobbyCommandResult = Readonly<{ state: GameStateSnapshot; credentials?: PlayerCredentials }>
 
-type PlayerRecord = { id: string; name: string; connected: boolean; score: number }
+type PlayerRecord = { id: string; name: string; connected: boolean; playing: boolean; score: number }
 type AnswerRecord = AnswerOption & { playerId?: string }
 
 export class LobbyError extends Error {
   constructor(
     readonly code:
       | 'LOBBY_CLOSED'
+      | 'LOBBY_FULL'
       | 'LOBBY_NOT_FOUND'
       | 'PLAYER_NOT_FOUND'
       | 'INVALID_NAME'
@@ -88,7 +93,9 @@ export class GameState {
 
   execute(command: LobbyCommand): LobbyCommandResult {
     switch (command.type) {
-      case 'join': return this.#join(command.playerName)
+      case 'view': return this.#view()
+      case 'spectate': return this.#spectate(command.playerName)
+      case 'join': return this.#join(command.playerName, command.playerId)
       case 'reconnect': return this.#reconnect(command.playerId)
       case 'disconnect': return this.#setConnected(command.playerId, false)
       case 'leave': return this.#leave(command.playerId)
@@ -101,6 +108,9 @@ export class GameState {
   }
 
   snapshot(): GameStateSnapshot {
+    const people = [...this.#players.values()].map(({ id, name, connected, playing, score }) => ({
+      id, name, connected, playing, score, answered: this.#answers.has(id), voted: this.#votes.has(id),
+    }))
     return {
       code: this.code,
       ownerPlayerId: this.ownerPlayerId,
@@ -111,9 +121,8 @@ export class GameState {
       task: this.#task && { id: this.#task.id, text: this.#task.text },
       answerOptions: this.#answerOptions.map(({ id, text }) => ({ id, text })),
       correctAnswerId: this.#phase === 'results' ? 'correct' : undefined,
-      players: [...this.#players.values()].map(({ id, name, connected, score }) => ({
-        id, name, connected, score, answered: this.#answers.has(id), voted: this.#votes.has(id),
-      })),
+      players: people.filter((player) => player.playing).map(({ playing: _, ...player }) => player),
+      spectators: people.filter((player) => !player.playing).map(({ playing: _, ...player }) => player),
     }
   }
 
@@ -141,14 +150,35 @@ export class GameState {
     return { state: this.snapshot() }
   }
 
-  #join(playerName: string): LobbyCommandResult {
+  #join(playerName: string, playerId?: string): LobbyCommandResult {
     this.#assertOpen()
     if (this.#phase !== 'lobby') throw new LobbyError('INVALID_GAME_PHASE', 'The game has already started.')
     const name = normalizeName(playerName)
-    if ([...this.#players.values()].some((player) => player.name.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0)) {
+    if (!playerId && this.#players.size >= MAX_PLAYERS) throw new LobbyError('LOBBY_FULL', 'The lobby already has the maximum of 100 players.')
+    const player = playerId ? this.#findPlayer(playerId) : createPlayer(name)
+    if ([...this.#players.values()].some((existingPlayer) => existingPlayer.id !== player.id && existingPlayer.name.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0)) {
       throw new LobbyError('NAME_TAKEN', 'A player with this name is already in the lobby.')
     }
-    const player = createPlayer(name)
+    player.name = name
+    player.connected = true
+    player.playing = true
+    if (!playerId) this.#players.set(player.id, player)
+    this.#revision += 1
+    return { state: this.snapshot(), credentials: credentialsFor(player) }
+  }
+
+  #view(): LobbyCommandResult {
+    this.#assertOpen()
+    return { state: this.snapshot() }
+  }
+
+  #spectate(playerName: string): LobbyCommandResult {
+    this.#assertOpen()
+    if (this.#players.size >= MAX_PLAYERS) throw new LobbyError('LOBBY_FULL', 'The lobby already has the maximum of 100 players.')
+    const player = createPlayer(playerName, false)
+    if ([...this.#players.values()].some((existingPlayer) => existingPlayer.name.localeCompare(player.name, undefined, { sensitivity: 'accent' }) === 0)) {
+      throw new LobbyError('NAME_TAKEN', 'A player with this name is already in the lobby.')
+    }
     player.connected = true
     this.#players.set(player.id, player)
     this.#revision += 1
@@ -214,7 +244,7 @@ export class GameState {
   }
 
   #completeAnswering(): void {
-    if (this.#phase !== 'answering' || ![...this.#players.keys()].every((playerId) => this.#answers.has(playerId))) return
+    if (this.#phase !== 'answering' || ![...this.#players.values()].filter((player) => player.playing).every((player) => this.#answers.has(player.id))) return
     this.#answerOptions = shuffle([{ id: 'correct', text: this.#task!.correctAnswer.text }, ...this.#answers.values()])
     this.#phase = 'voting'
   }
@@ -234,7 +264,7 @@ export class GameState {
   }
 
   #completeVoting(): void {
-    if (this.#phase !== 'voting' || ![...this.#players.keys()].every((playerId) => this.#votes.has(playerId))) return
+    if (this.#phase !== 'voting' || ![...this.#players.values()].filter((player) => player.playing).every((player) => this.#votes.has(player.id))) return
     for (const [playerId, answerId] of this.#votes) {
       const answer = this.#answerOptions.find((option) => option.id === answerId)!
       if (answer.id === 'correct') this.#findPlayer(playerId).score += 2
@@ -285,8 +315,8 @@ function normalizeName(value: string): string {
 
 function normalizeCode(value: string): string { return value.trim().toUpperCase() }
 
-function createPlayer(name: string): PlayerRecord {
-  return { id: crypto.randomUUID(), name: normalizeName(name), connected: false, score: 0 }
+function createPlayer(name: string, playing = true): PlayerRecord {
+  return { id: crypto.randomUUID(), name: normalizeName(name), connected: false, playing, score: 0 }
 }
 
 function credentialsFor(player: PlayerRecord): PlayerCredentials { return { playerId: player.id } }

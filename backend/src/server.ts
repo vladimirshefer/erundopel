@@ -19,6 +19,7 @@ const socketByPlayer = new Map<string, WebSocket>()
 
 type SocketWithSession = WebSocket & {
   session?: ClientSession
+  viewCode?: string
   windowStartedAt: number
   messagesInWindow: number
 }
@@ -36,15 +37,6 @@ const server = createServer(async (request, response) => {
       const body = await readJson(request)
       const result = lobbies.createLobby({ playerName: stringField(body, 'playerName') })
       respondJson(response, 201, result)
-    } catch (error) {
-      respondError(response, error)
-    }
-    return
-  }
-
-  if (request.method === 'GET' && url.pathname.startsWith('/lobbies/')) {
-    try {
-      respondJson(response, 200, { state: lobbies.getSnapshot(url.pathname.slice('/lobbies/'.length)) })
     } catch (error) {
       respondError(response, error)
     }
@@ -96,16 +88,18 @@ function handleMessage(socket: SocketWithSession, message: ClientMessage): void 
     lobbies.execute(code, command),
   )
   if (result.detach) detach(socket)
+  if (result.viewCode) attachViewer(socket, result.viewCode)
   if (result.nextSession) attach(socket, result.nextSession)
   if (result.response) send(socket, result.response)
   broadcast(result.state)
 }
 
 function attach(socket: SocketWithSession, session: ClientSession): void {
-  detach(socket, false)
+  detach(socket)
 
   const previousSocket = socketByPlayer.get(session.playerId)
   socket.session = session
+  socket.viewCode = session.code
   socketByPlayer.set(session.playerId, socket)
   const clients = clientsByLobby.get(session.code) ?? new Set<WebSocket>()
   clients.add(socket)
@@ -114,6 +108,14 @@ function attach(socket: SocketWithSession, session: ClientSession): void {
   if (previousSocket && previousSocket !== socket) {
     previousSocket.close(4000, 'Connected from another tab.')
   }
+}
+
+function attachViewer(socket: SocketWithSession, code: string): void {
+  detach(socket)
+  socket.viewCode = code
+  const clients = clientsByLobby.get(code) ?? new Set<WebSocket>()
+  clients.add(socket)
+  clientsByLobby.set(code, clients)
 }
 
 function disconnect(socket: SocketWithSession): void {
@@ -129,15 +131,16 @@ function disconnect(socket: SocketWithSession): void {
   }
 }
 
-function detach(socket: SocketWithSession, clearSession = true): void {
+function detach(socket: SocketWithSession): void {
   const session = socket.session
-  if (!session) return
-
-  const clients = clientsByLobby.get(session.code)
+  const code = session?.code ?? socket.viewCode
+  if (!code) return
+  const clients = clientsByLobby.get(code)
   clients?.delete(socket)
-  if (clients?.size === 0) clientsByLobby.delete(session.code)
-  if (socketByPlayer.get(session.playerId) === socket) socketByPlayer.delete(session.playerId)
-  if (clearSession) delete socket.session
+  if (clients?.size === 0) clientsByLobby.delete(code)
+  if (session && socketByPlayer.get(session.playerId) === socket) socketByPlayer.delete(session.playerId)
+  delete socket.session
+  delete socket.viewCode
 }
 
 function broadcast(state: GameStateSnapshot): void {

@@ -13,7 +13,9 @@ export type ClientSession = Readonly<{
 }>
 
 export type ClientMessage =
-  | Readonly<{ type: 'join'; code: string; playerName: string }>
+  | Readonly<{ type: 'view'; code: string }>
+  | Readonly<{ type: 'spectate'; code: string; playerName: string }>
+  | Readonly<{ type: 'join'; playerName: string }>
   | Readonly<{ type: 'reconnect'; code: string; playerId: string }>
   | Readonly<{ type: 'leave' }>
   | Readonly<{ type: 'closeLobby' }>
@@ -23,6 +25,8 @@ export type ClientMessage =
   | Readonly<{ type: 'nextTask' }>
 
 export type ClientResponse =
+  | Readonly<{ type: 'viewed'; state: GameStateSnapshot }>
+  | Readonly<{ type: 'spectating'; state: GameStateSnapshot; credentials: PlayerCredentials }>
   | Readonly<{ type: 'joined'; state: GameStateSnapshot; credentials: PlayerCredentials }>
   | Readonly<{ type: 'resumed'; state: GameStateSnapshot }>
   | Readonly<{ type: 'left' }>
@@ -31,6 +35,7 @@ export type ClientDispatchResult = Readonly<{
   state: GameStateSnapshot
   response?: ClientResponse
   nextSession?: ClientSession
+  viewCode?: string
   detach?: true
 }>
 
@@ -49,8 +54,12 @@ export function parseClientMessage(raw: string): ClientMessage {
   const type = stringField(message, 'type')
 
   switch (type) {
-    case 'join':
+    case 'view':
+      return { type, code: stringField(message, 'code') }
+    case 'spectate':
       return { type, code: stringField(message, 'code'), playerName: stringField(message, 'playerName') }
+    case 'join':
+      return { type, playerName: stringField(message, 'playerName') }
     case 'reconnect':
       return {
         type,
@@ -77,9 +86,28 @@ export function dispatchClientMessage(
   execute: ExecuteLobbyCommand,
 ): ClientDispatchResult {
   switch (message.type) {
-    case 'join': {
+    case 'view': {
       assertNoSession(session)
-      const result = execute(message.code, { type: 'join', playerName: message.playerName })
+      const result = execute(message.code, { type: 'view' })
+      return {
+        state: result.state,
+        response: { type: 'viewed', state: result.state },
+        viewCode: result.state.code,
+      }
+    }
+    case 'spectate': {
+      assertNoSession(session)
+      const result = execute(message.code, { type: 'spectate', playerName: message.playerName })
+      const credentials = requireCredentials(result)
+      return {
+        state: result.state,
+        response: { type: 'spectating', state: result.state, credentials },
+        nextSession: { code: result.state.code, playerId: credentials.playerId },
+      }
+    }
+    case 'join': {
+      const currentSession = requireSession(session)
+      const result = execute(currentSession.code, { type: 'join', playerId: currentSession.playerId, playerName: message.playerName })
       const credentials = requireCredentials(result)
       return {
         state: result.state,

@@ -17,6 +17,7 @@ export default function LobbyPage() {
   const [canJoin, setCanJoin] = useState(false)
   const [error, setError] = useState('')
   const [isLinkCopied, setIsLinkCopied] = useState(false)
+  const isPlaying = lobby?.players.some((player) => player.id === playerId) ?? false
 
   useEffect(() => {
     if (!code) {
@@ -25,12 +26,33 @@ export default function LobbyPage() {
     }
 
     if (!playerId) {
+      let active = true
+      let connectedSocket: WebSocket | null = null
       setCanJoin(true)
       lobbyRepository
-        .getLobby(code)
-        .then(setLobby)
-        .catch(() => setError(loc('Could not join game')))
-      return
+        .viewLobby(code, (state) => {
+          if (active) setLobby(state)
+        })
+        .then(async (connection) => {
+          if (!active) {
+            connection.socket.close()
+            return
+          }
+          connectedSocket = connection.socket
+          socket.current = connectedSocket
+          const credentials = await lobbyRepository.spectate(connection.socket, code, `Ghost-${crypto.randomUUID().slice(0, 8)}`)
+          if (!active) return
+          localStorage.setItem('erundopel.playerId', credentials.playerId)
+          setPlayerId(credentials.playerId)
+        })
+        .catch(() => {
+          if (active) setError(loc('Could not join game'))
+        })
+      return () => {
+        active = false
+        connectedSocket?.close()
+        if (socket.current === connectedSocket) socket.current = null
+      }
     }
 
     if (socket.current) {
@@ -45,7 +67,10 @@ export default function LobbyPage() {
     let connectedSocket: WebSocket | null = null
     lobbyRepository
       .reconnect(code, playerId, (state) => {
-        if (active) setLobby(state)
+        if (active) {
+          setLobby(state)
+          setCanJoin(!state.players.some((player) => player.id === playerId))
+        }
       })
       .then((connection) => {
         if (!active) {
@@ -59,9 +84,20 @@ export default function LobbyPage() {
         if (!active) return
         setCanJoin(true)
         lobbyRepository
-          .getLobby(code)
-          .then((state) => {
+          .viewLobby(code, (state) => {
             if (active) setLobby(state)
+          })
+          .then(async (connection) => {
+            if (!active) {
+              connection.socket.close()
+              return
+            }
+            connectedSocket = connection.socket
+            socket.current = connectedSocket
+            const credentials = await lobbyRepository.spectate(connection.socket, code, `Ghost-${crypto.randomUUID().slice(0, 8)}`)
+            if (!active) return
+            localStorage.setItem('erundopel.playerId', credentials.playerId)
+            setPlayerId(credentials.playerId)
           })
           .catch(() => {
             if (active) setError(loc('Could not join game'))
@@ -76,8 +112,8 @@ export default function LobbyPage() {
   }, [code, navigate, playerId])
 
   useEffect(() => {
-    if (lobby && lobby.phase !== 'lobby') navigate(`/game/${lobby.code}`, { replace: true })
-  }, [lobby, navigate])
+    if (lobby && isPlaying && lobby.phase !== 'lobby') navigate(`/game/${lobby.code}`, { replace: true })
+  }, [isPlaying, lobby, navigate])
 
   async function joinLobby(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -90,16 +126,13 @@ export default function LobbyPage() {
     }
 
     try {
-      const connection = await lobbyRepository.joinLobby(code, name, setLobby)
-      const joinedPlayerId = connection.credentials?.playerId
-      if (!joinedPlayerId) {
-        connection.socket.close()
+      if (!socket.current || socket.current.readyState !== WebSocket.OPEN) {
         setError(loc('Could not join game'))
         return
       }
+      const { playerId: joinedPlayerId } = await lobbyRepository.joinLobby(socket.current, name)
 
       localStorage.setItem('erundopel.playerId', joinedPlayerId)
-      socket.current = connection.socket
       setPlayerId(joinedPlayerId)
       setCanJoin(false)
       setJoinForm(false)
@@ -132,7 +165,8 @@ export default function LobbyPage() {
   }
 
   const players: LobbyPlayer[] = lobby?.players ?? []
-  const isOwner: Boolean = lobby?.players[0]?.id === playerId
+  const spectators: LobbyPlayer[] = lobby?.spectators ?? []
+  const isOwner: Boolean = lobby?.ownerPlayerId === playerId
 
   return (
     <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
@@ -165,19 +199,19 @@ export default function LobbyPage() {
             />
             <div className="mt-5">
               <p className="text-2xl font-black leading-tight">{player.name}</p>
-              {player.id === lobby?.players[0]?.id && <span className="mt-2 block text-sm font-bold">{loc('Host')}</span>}
+              {player.id === lobby?.ownerPlayerId && <span className="mt-2 block text-sm font-bold">{loc('Host')}</span>}
             </div>
           </article>
         ))}
 
-        {canJoin && !joinForm && (
+        {canJoin && lobby?.phase === 'lobby' && !joinForm && (
           <button className="flex min-h-48 flex-col items-center justify-center border-4 border-dashed border-zinc-300 text-zinc-700 transition duration-300 hover:-translate-y-1 hover:border-zinc-950 hover:bg-zinc-100" onClick={() => setJoinForm(true)} type="button">
             <span className="text-6xl font-black">+</span>
             <span className="mt-1 font-black">{loc('Join game')}</span>
           </button>
         )}
 
-        {canJoin && joinForm && (
+        {canJoin && lobby?.phase === 'lobby' && joinForm && (
           <form className="flex min-h-48 flex-col justify-center bg-zinc-950 p-4 text-white shadow-lg" onSubmit={joinLobby}>
             <label className="text-sm font-bold" htmlFor="name">
               {loc('Your name')}
@@ -190,9 +224,27 @@ export default function LobbyPage() {
         )}
       </section>
 
+      {spectators.length > 0 && (
+        <>
+          <p className="mt-8 text-lg font-semibold text-zinc-600">{loc('Spectators')}</p>
+          <section className="mt-6 grid gap-4 sm:grid-cols-2">
+            {spectators.map((spectator) => (
+              <article className="flex min-h-48 flex-col justify-between border-4 border-zinc-950 bg-white p-5 text-zinc-950 shadow-lg" key={spectator.id}>
+                <img
+                  alt=""
+                  className="size-24 border-2 border-zinc-950 bg-white object-cover sm:size-28"
+                  src={`https://gravatar.com/avatar/${Md5.hashStr(spectator.id)}?d=robohash&s=224`}
+                />
+                <p className="mt-5 text-2xl font-black leading-tight">{spectator.name}</p>
+              </article>
+            ))}
+          </section>
+        </>
+      )}
+
       {error && <p className="mt-5 font-bold text-amber-600">{error}</p>}
 
-      {playerId && lobby && (
+      {isPlaying && lobby && (
         <section className="mt-8 rounded-3xl bg-zinc-950 p-6 text-white">
           {isOwner ? (
             <>

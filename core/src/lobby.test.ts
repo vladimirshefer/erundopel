@@ -27,6 +27,72 @@ test('joins and reconnects players through validated commands', () => {
   assert.equal(reconnected.state.players[1]?.connected, true)
 })
 
+test('promotes a viewer to a player without changing their id', () => {
+  const manager = new LobbyManager()
+  const lobby = manager.createLobby({ playerName: 'Vladimir' })
+  const viewed = manager.execute(lobby.state.code, { type: 'view' })
+  assert.equal(viewed.state.players.length, 1)
+
+  const viewer = manager.execute(lobby.state.code, { type: 'spectate', playerName: 'Ghost-1' })
+  const viewerId = viewer.credentials?.playerId
+  assert.ok(viewerId)
+  assert.equal(viewer.state.spectators[0]?.name, 'Ghost-1')
+  assert.equal(viewer.state.spectators[0]?.connected, true)
+
+  const joined = manager.execute(lobby.state.code, { type: 'join', playerId: viewerId, playerName: 'Anna' })
+  assert.equal(joined.credentials?.playerId, viewerId)
+  assert.equal(joined.state.players[1]?.name, 'Anna')
+  assert.equal(joined.state.spectators.length, 0)
+})
+
+test('requires a name when registering as a spectator', () => {
+  assert.throws(() => parseClientMessage('{"type":"spectate","code":"ABC123"}'))
+})
+
+test('rejects new entries after 100 players', () => {
+  const manager = new LobbyManager()
+  const lobby = manager.createLobby({ playerName: 'Vladimir' })
+  for (let index = 1; index < 100; index += 1) {
+    manager.execute(lobby.state.code, { type: 'spectate', playerName: `Ghost-${index}` })
+  }
+
+  assert.throws(
+    () => manager.execute(lobby.state.code, { type: 'spectate', playerName: 'Ghost-100' }),
+    (error: unknown) => error instanceof LobbyError && error.code === 'LOBBY_FULL',
+  )
+  const state = manager.getSnapshot(lobby.state.code)
+  assert.equal(state.players.length + state.spectators.length, 100)
+})
+
+test('does not wait for spectators to answer', () => {
+  const manager = new LobbyManager()
+  const lobby = manager.createLobby({ playerName: 'Vladimir' })
+  const owner = lobby.credentials!
+  manager.execute(lobby.state.code, { type: 'spectate', playerName: 'Ghost-1' })
+  manager.execute(lobby.state.code, { type: 'startTask', playerId: owner.playerId })
+
+  const completed = manager.execute(lobby.state.code, {
+    type: 'submitAnswer',
+    playerId: owner.playerId,
+    answer: { text: 'Мой вариант' },
+  })
+  assert.equal(completed.state.phase, 'voting')
+})
+
+test('keeps disconnected spectators and players for reconnecting', () => {
+  const manager = new LobbyManager()
+  const lobby = manager.createLobby({ playerName: 'Vladimir' })
+  const viewer = manager.execute(lobby.state.code, { type: 'spectate', playerName: 'Ghost-1' }).credentials!
+  const joined = manager.execute(lobby.state.code, { type: 'join', playerName: 'Anna' }).credentials!
+
+  const disconnectedViewer = manager.execute(lobby.state.code, { type: 'disconnect', playerId: viewer.playerId })
+  const disconnectedPlayer = manager.execute(lobby.state.code, { type: 'disconnect', playerId: joined.playerId })
+  assert.equal(disconnectedViewer.state.spectators.find((player) => player.id === viewer.playerId)?.connected, false)
+  assert.equal(disconnectedPlayer.state.players.find((player) => player.id === joined.playerId)?.connected, false)
+  const reconnectedViewer = manager.execute(lobby.state.code, { type: 'reconnect', playerId: viewer.playerId })
+  assert.equal(reconnectedViewer.state.spectators.find((player) => player.id === viewer.playerId)?.connected, true)
+})
+
 test('rejects reconnects for an unknown player', () => {
   const manager = new LobbyManager()
   const lobby = manager.createLobby({ playerName: 'Vladimir' })
