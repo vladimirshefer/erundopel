@@ -17,3 +17,12 @@
 - **+1 point** — for each player who votes for your fake definition.
 
 After several rounds, the player with the **most points wins**.
+
+
+## Product design
+- Online web-based game for a group of people, connecting from their devices.
+- Anyone can create a lobby and invite friends to join.
+- When the game starts, one random word is selected from the dictionary and presented to the players.
+- Players write their fake definition of the word.
+- When all the answers are collected, the voting begins.
+- The final scores are presented to the players.

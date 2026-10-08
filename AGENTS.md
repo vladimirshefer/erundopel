@@ -7,6 +7,8 @@
 - All client-server communication should be encapsulated in a Repository interface+class. Namin convention - `repositories/{EntityName}Repository.ts`. Each repository is managing its own entity type - "Lobby", "Answer", "Player", etc. Repository is an interface with clear CRUD operations at first. Each repository has the `{EntityName}RepositoryImpl` class implementing the interface. All the http/websocket communications is encapsulated there.
 - App layout must be adaptive, mobile-first.
 - Do not use raw css, use tailwind for styles.
+- Main color scheme of the website is yellow, black and white.
+- Do not use rounded borders until explicitly asked for.
 
 #### Backend
 - Generic Backend Node.js implementation of the backend for deployments as Docker container.
@@ -26,3 +28,6 @@
 - Do now write stub implementations, use TODO in code. It is ok to have non-working code by the end of the iteration. We will fix that in later iterations.
 - Follow the existing code conventions.
 - When git committing add message description why the change was mage.
+- Both Backend and Cloudflare setup should work.
+- As a main reference for a project structure organizing use https://github.com/vladimirshefer/ChessGrinder project.
+- 
