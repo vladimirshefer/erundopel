@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
 import lobbyRepository, { type LobbyState } from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
@@ -7,6 +8,7 @@ export default function LobbyPage() {
   const loc = useLoc()
   const navigate = useNavigate()
   const { code } = useParams()
+  usePageTitle(`${loc('Erundopel')} - ${code}`)
   const socket = useRef<WebSocket | null>(null)
   const [lobby, setLobby] = useState<LobbyState>()
   const [playerId, setPlayerId] = useState(() => localStorage.getItem('erundopel.playerId'))

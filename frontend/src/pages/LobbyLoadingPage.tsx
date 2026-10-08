@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
 import { useLoc } from '../strings/loc.ts'
 
 export default function LobbyLoadingPage() {
   const loc = useLoc()
   const navigate = useNavigate()
   const { code } = useParams()
+  usePageTitle(`${loc('Erundopel')} - ${code}`)
   useEffect(() => {
     if (!code) {
       navigate('/', { replace: true })

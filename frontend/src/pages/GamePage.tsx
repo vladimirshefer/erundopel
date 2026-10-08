@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
 import lobbyRepository, {
   type LobbyState,
 } from '../repositories/LobbyRepository.ts'
@@ -7,6 +8,7 @@ import { useLoc } from '../strings/loc.ts'
 
 export default function GamePage() {
   const loc = useLoc()
+  usePageTitle()
   const navigate = useNavigate()
   const { code } = useParams()
   const [lobby, setLobby] = useState<LobbyState>()

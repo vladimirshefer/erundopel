@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
 import lobbyRepository from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
 export default function CreateGamePage() {
   const loc = useLoc()
+  usePageTitle()
   const navigate = useNavigate()
   const started = useRef(false)
   const [error, setError] = useState('')

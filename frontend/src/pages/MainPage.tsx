@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
 import { useLoc } from '../strings/loc.ts'
 
 export default function MainPage() {
   const loc = useLoc()
+  usePageTitle()
   const navigate = useNavigate()
   const [error, setError] = useState('')
 

@@ -1,8 +1,10 @@
 import { Link } from 'react-router'
+import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
 import { useLoc } from '../strings/loc.ts'
 
 export default function RulesPage() {
   const loc = useLoc()
+  usePageTitle()
   return (
     <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
       <h1 className="text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl">{loc('Rules')}</h1>
