@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
 import lobbyRepository from '../repositories/LobbyRepository.ts'
+import playerProfileRepository from '../repositories/PlayerProfileRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
 export default function CreateGamePage() {
@@ -16,7 +17,7 @@ export default function CreateGamePage() {
     started.current = true
 
     lobbyRepository
-      .createLobby(loc('Host'))
+      .createLobby(playerProfileRepository.getProfile()?.name ?? loc('Host'))
       .then((lobby) => {
         localStorage.setItem('erundopel.playerId', lobby.credentials.playerId)
         navigate(`/lobby/${lobby.state.code}`, { replace: true })

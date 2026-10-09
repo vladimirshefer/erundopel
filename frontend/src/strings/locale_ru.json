@@ -50,5 +50,9 @@
   "Vote sent. Waiting for other players.": "Голос отправлен. Ждём остальных игроков.",
   "Waiting for the host to start the next round.": "Ждём, пока ведущий начнёт следующий раунд.",
   "Waiting for the host to start.": "Ждём, пока ведущий начнёт игру.",
-  "Your answer": "Ваш ответ"
+  "Your answer": "Ваш ответ",
+  "Profile": "Профиль",
+  "Profile saved": "Профиль сохранён",
+  "Save profile": "Сохранить профиль",
+  "Your name is used when you join a game": "Ваше имя используется при входе в игру"
 }

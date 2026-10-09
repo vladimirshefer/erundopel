@@ -6,6 +6,7 @@ import GamePage from './pages/GamePage.tsx'
 import LobbyLoadingPage from './pages/LobbyLoadingPage.tsx'
 import LobbyPage from './pages/LobbyPage.tsx'
 import MainPage from './pages/MainPage.tsx'
+import PlayerProfilePage from './pages/PlayerProfilePage.tsx'
 import RulesPage from './pages/RulesPage.tsx'
 
 const queryClient = new QueryClient()
@@ -15,13 +16,14 @@ export default function App() {
     <LanguageContextProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-      <div className="flex min-h-screen items-center justify-center bg-amber-300 p-4 sm:p-8">
-        <Routes>
+          <div className="flex min-h-screen items-center justify-center bg-amber-300 p-4 sm:p-8">
+            <Routes>
               <Route path="/" element={<MainPage />} />
               <Route path="/create" element={<CreateGamePage />} />
-        <Route path="/lobby/:code" element={<LobbyLoadingPage />} />
-        <Route path="/lobby/:code/room" element={<LobbyPage />} />
+              <Route path="/lobby/:code" element={<LobbyLoadingPage />} />
+              <Route path="/lobby/:code/room" element={<LobbyPage />} />
               <Route path="/game/:code" element={<GamePage />} />
+              <Route path="/profile" element={<PlayerProfilePage />} />
               <Route path="/rules" element={<RulesPage />} />
               <Route path="*" element={<MainPage />} />
             </Routes>
