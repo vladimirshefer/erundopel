@@ -50,7 +50,8 @@ export default function LobbyPage() {
           const credentials = await lobbyRepository.spectate(
             connection.socket,
             code,
-            `Ghost-${crypto.randomUUID().slice(0, 8)}`,
+            playerProfileRepository.getProfile()?.name ??
+              `Ghost-${crypto.randomUUID().slice(0, 8)}`,
           )
           if (!active) return
           localStorage.setItem('erundopel.playerId', credentials.playerId)
@@ -108,7 +109,8 @@ export default function LobbyPage() {
             const credentials = await lobbyRepository.spectate(
               connection.socket,
               code,
-              `Ghost-${crypto.randomUUID().slice(0, 8)}`,
+              playerProfileRepository.getProfile()?.name ??
+                `Ghost-${crypto.randomUUID().slice(0, 8)}`,
             )
             if (!active) return
             localStorage.setItem('erundopel.playerId', credentials.playerId)
