@@ -1,3 +1,5 @@
+import type { DictionaryContentDto } from './DictionaryRepository.ts'
+
 export type LobbyPlayer = {
   id: string
   name: string
@@ -12,6 +14,7 @@ export type AnswerOption = { id: string; text: string }
 export type LobbyState = {
   code: string
   ownerPlayerId: string
+  dictionaryId: string
   phase: 'lobby' | 'answering' | 'voting' | 'results'
   players: LobbyPlayer[]
   spectators: LobbyPlayer[]
@@ -37,6 +40,8 @@ type LobbyConnection = {
 export interface LobbyRepository {
   createLobby(
     playerName: string,
+    dictionaryId: string,
+    dictionary: DictionaryContentDto,
   ): Promise<{ state: LobbyState; credentials: PlayerSession }>
   viewLobby(code: string, onState: (state: LobbyState) => void): Promise<LobbyConnection>
   spectate(socket: WebSocket, code: string, playerName: string): Promise<PlayerSession>
@@ -49,11 +54,15 @@ export interface LobbyRepository {
 }
 
 export class LobbyRepositoryImpl implements LobbyRepository {
-  async createLobby(playerName: string) {
+  async createLobby(
+    playerName: string,
+    dictionaryId: string,
+    dictionary: DictionaryContentDto,
+  ) {
     const response = await fetch('/lobbies', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ playerName }),
+      body: JSON.stringify({ playerName, dictionaryId, dictionary }),
     })
     const body = (await response.json()) as {
       state?: LobbyState

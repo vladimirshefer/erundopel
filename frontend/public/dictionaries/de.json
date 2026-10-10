@@ -1,0 +1,87 @@
+[
+  {
+    "id": "backpfeifengesicht",
+    "text": "Backpfeifengesicht",
+    "correctAnswer": {
+      "text": "ein Gesicht, das förmlich nach einer Ohrfeige verlangt"
+    }
+  },
+  {
+    "id": "dreikaesehoch",
+    "text": "Dreikäsehoch",
+    "correctAnswer": { "text": "ein kleines Kind" }
+  },
+  {
+    "id": "erklaerungsnot",
+    "text": "Erklärungsnot",
+    "correctAnswer": {
+      "text": "eine peinliche Lage, in der man sich rechtfertigen muss"
+    }
+  },
+  {
+    "id": "fernweh",
+    "text": "Fernweh",
+    "correctAnswer": { "text": "Sehnsucht nach fernen Orten" }
+  },
+  {
+    "id": "fingerspitzengefuehl",
+    "text": "Fingerspitzengefühl",
+    "correctAnswer": { "text": "besonderes Gespür für einen heiklen Umgang" }
+  },
+  {
+    "id": "fremdschaemen",
+    "text": "Fremdschämen",
+    "correctAnswer": { "text": "Scham über das peinliche Verhalten anderer" }
+  },
+  {
+    "id": "gemuetlichkeit",
+    "text": "Gemütlichkeit",
+    "correctAnswer": { "text": "eine behagliche, freundliche Atmosphäre" }
+  },
+  {
+    "id": "kaffeeklatsch",
+    "text": "Kaffeeklatsch",
+    "correctAnswer": { "text": "geselliges Plaudern bei Kaffee und Kuchen" }
+  },
+  {
+    "id": "kummerspeck",
+    "text": "Kummerspeck",
+    "correctAnswer": { "text": "Gewicht, das man durch Frustessen zunimmt" }
+  },
+  {
+    "id": "morgenmuffel",
+    "text": "Morgenmuffel",
+    "correctAnswer": { "text": "ein Mensch, der morgens schlecht gelaunt ist" }
+  },
+  {
+    "id": "ohrwurm",
+    "text": "Ohrwurm",
+    "correctAnswer": {
+      "text": "eine Melodie, die einem nicht aus dem Kopf geht"
+    }
+  },
+  {
+    "id": "schnapsidee",
+    "text": "Schnapsidee",
+    "correctAnswer": { "text": "eine besonders absurde Idee" }
+  },
+  {
+    "id": "treppenwitz",
+    "text": "Treppenwitz",
+    "correctAnswer": {
+      "text": "eine schlagfertige Antwort, die einem zu spät einfällt"
+    }
+  },
+  {
+    "id": "weltschmerz",
+    "text": "Weltschmerz",
+    "correctAnswer": { "text": "traurige Müdigkeit angesichts der Welt" }
+  },
+  {
+    "id": "zwickmuehle",
+    "text": "Zwickmühle",
+    "correctAnswer": {
+      "text": "eine Lage mit zwei gleich unangenehmen Möglichkeiten"
+    }
+  }
+]

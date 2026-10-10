@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { LanguageContextProvider } from './contexts/LanguageContext.tsx'
+import LanguageSelector from './components/LanguageSelector.tsx'
 import CreateGamePage from './pages/CreateGamePage.tsx'
 import GamePage from './pages/GamePage.tsx'
 import LobbyLoadingPage from './pages/LobbyLoadingPage.tsx'
@@ -17,6 +18,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <div className="flex min-h-screen items-center justify-center bg-amber-300 p-4 sm:p-8">
+            <LanguageSelector />
             <Routes>
               <Route path="/" element={<MainPage />} />
               <Route path="/create" element={<CreateGamePage />} />

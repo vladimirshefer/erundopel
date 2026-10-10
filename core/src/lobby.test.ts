@@ -13,6 +13,29 @@ test('creates a lobby with a player id outside its public state', () => {
   assert.ok(result.credentials?.playerId)
 })
 
+test('uses the selected question dictionary', () => {
+  const manager = new LobbyManager()
+  const lobby = manager.createLobby({
+    playerName: 'Vladimir',
+    dictionaryId: 'de',
+    dictionary: [
+      {
+        id: 'backpfeifengesicht',
+        text: 'Backpfeifengesicht',
+        correctAnswer: { text: 'ein Gesicht, das nach einer Ohrfeige verlangt' },
+      },
+    ],
+  })
+  const owner = lobby.credentials!
+
+  assert.equal(lobby.state.dictionaryId, 'de')
+  const started = manager.execute(lobby.state.code, {
+    type: 'startTask',
+    playerId: owner.playerId,
+  })
+  assert.equal(started.state.task?.text, 'Backpfeifengesicht')
+})
+
 test('joins and reconnects players through validated commands', () => {
   const manager = new LobbyManager()
   const lobby = manager.createLobby({ playerName: 'Vladimir' })

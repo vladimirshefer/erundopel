@@ -22,6 +22,7 @@ export type AnswerOption = Readonly<{ id: string; text: string }>
 export type GameStateSnapshot = Readonly<{
   code: string
   ownerPlayerId: string
+  dictionaryId: string
   createdAt: number
   revision: number
   closed: boolean
@@ -32,7 +33,11 @@ export type GameStateSnapshot = Readonly<{
   players: readonly LobbyPlayer[]
   spectators: readonly LobbyPlayer[]
 }>
-export type CreateLobbyInput = Readonly<{ playerName: string }>
+export type CreateLobbyInput = Readonly<{
+  playerName: string
+  dictionaryId?: string
+  dictionary?: readonly Task[]
+}>
 export type LobbyCommand =
   | Readonly<{ type: 'view' }>
   | Readonly<{ type: 'spectate'; playerName: string }>
@@ -82,11 +87,23 @@ export class GameState {
   #task?: Task
   #answerOptions: AnswerRecord[] = []
 
-  private constructor(readonly code: string, readonly ownerPlayerId: string, readonly createdAt: number) {}
+  private constructor(
+    readonly code: string,
+    readonly ownerPlayerId: string,
+    readonly createdAt: number,
+    readonly dictionaryId: string,
+    readonly dictionary: readonly Task[],
+  ) {}
 
-  static create(code: string, playerName: string, now = Date.now()): { gameState: GameState; credentials: PlayerCredentials } {
+  static create(
+    code: string,
+    playerName: string,
+    dictionaryId = 'ru',
+    dictionary: readonly Task[] = tasks,
+    now = Date.now(),
+  ): { gameState: GameState; credentials: PlayerCredentials } {
     const owner = createPlayer(playerName)
-    const gameState = new GameState(code, owner.id, now)
+    const gameState = new GameState(code, owner.id, now, dictionaryId, dictionary)
     gameState.#players.set(owner.id, owner)
     return { gameState, credentials: credentialsFor(owner) }
   }
@@ -114,6 +131,7 @@ export class GameState {
     return {
       code: this.code,
       ownerPlayerId: this.ownerPlayerId,
+      dictionaryId: this.dictionaryId,
       createdAt: this.createdAt,
       revision: this.#revision,
       closed: this.#closed,
@@ -223,7 +241,7 @@ export class GameState {
   }
 
   #beginTask(): LobbyCommandResult {
-    this.#task = tasks[Math.floor(Math.random() * tasks.length)]
+    this.#task = this.dictionary[Math.floor(Math.random() * this.dictionary.length)]
     this.#answers.clear()
     this.#votes.clear()
     this.#answerOptions = []
@@ -279,7 +297,12 @@ export class LobbyManager {
 
   createLobby(input: CreateLobbyInput): LobbyCommandResult {
     const code = this.#createCode()
-    const { gameState, credentials } = GameState.create(code, input.playerName)
+    const { gameState, credentials } = GameState.create(
+      code,
+      input.playerName,
+      input.dictionaryId,
+      input.dictionary,
+    )
     this.#lobbies.set(code, gameState)
     return { state: gameState.snapshot(), credentials }
   }

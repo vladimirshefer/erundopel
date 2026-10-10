@@ -1,0 +1,83 @@
+[
+  {
+    "id": "aglet",
+    "text": "aglet",
+    "correctAnswer": { "text": "the small plastic or metal tip on a shoelace" }
+  },
+  {
+    "id": "apricity",
+    "text": "apricity",
+    "correctAnswer": { "text": "the warmth of the sun in winter" }
+  },
+  {
+    "id": "brontide",
+    "text": "brontide",
+    "correctAnswer": { "text": "a low rumbling sound like distant thunder" }
+  },
+  {
+    "id": "callipygian",
+    "text": "callipygian",
+    "correctAnswer": { "text": "having well-shaped buttocks" }
+  },
+  {
+    "id": "cockaigne",
+    "text": "Cockaigne",
+    "correctAnswer": { "text": "an imaginary land of luxury and idleness" }
+  },
+  {
+    "id": "eleutheromania",
+    "text": "eleutheromania",
+    "correctAnswer": { "text": "an intense desire for freedom" }
+  },
+  {
+    "id": "fard",
+    "text": "fard",
+    "correctAnswer": { "text": "cosmetic makeup, especially for the face" }
+  },
+  {
+    "id": "formication",
+    "text": "formication",
+    "correctAnswer": {
+      "text": "the feeling that insects are crawling over the skin"
+    }
+  },
+  {
+    "id": "grawlix",
+    "text": "grawlix",
+    "correctAnswer": { "text": "symbols used in comics to replace swear words" }
+  },
+  {
+    "id": "kakistocracy",
+    "text": "kakistocracy",
+    "correctAnswer": { "text": "government by the least qualified people" }
+  },
+  {
+    "id": "logophile",
+    "text": "logophile",
+    "correctAnswer": { "text": "a person who loves words" }
+  },
+  {
+    "id": "mumpsimus",
+    "text": "mumpsimus",
+    "correctAnswer": {
+      "text": "a stubborn attachment to an old mistake or habit"
+    }
+  },
+  {
+    "id": "noctambulist",
+    "text": "noctambulist",
+    "correctAnswer": { "text": "a sleepwalker" }
+  },
+  {
+    "id": "petrichor",
+    "text": "petrichor",
+    "correctAnswer": {
+      "text": "the earthy smell after rain falls on dry ground"
+    }
+  },
+  {
+    "id": "zarf",
+    "text": "zarf",
+    "correctAnswer": { "text": "a holder for a handleless coffee cup" }
+  }
+]

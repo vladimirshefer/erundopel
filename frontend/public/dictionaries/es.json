@@ -1,0 +1,85 @@
+[
+  {
+    "id": "botellon",
+    "text": "botellón",
+    "correctAnswer": { "text": "reunión para beber al aire libre" }
+  },
+  {
+    "id": "cachivache",
+    "text": "cachivache",
+    "correctAnswer": { "text": "objeto viejo, inútil o de poco valor" }
+  },
+  {
+    "id": "carambola",
+    "text": "carambola",
+    "correctAnswer": {
+      "text": "jugada de billar en la que una bola toca otras dos"
+    }
+  },
+  {
+    "id": "chismoso",
+    "text": "chismoso",
+    "correctAnswer": { "text": "persona que cuenta o escucha chismes" }
+  },
+  {
+    "id": "desvelado",
+    "text": "desvelado",
+    "correctAnswer": { "text": "persona que no ha dormido o no puede dormir" }
+  },
+  {
+    "id": "dominguero",
+    "text": "dominguero",
+    "correctAnswer": {
+      "text": "persona que practica una actividad solo los domingos"
+    }
+  },
+  {
+    "id": "duende",
+    "text": "duende",
+    "correctAnswer": {
+      "text": "encanto misterioso que inspira una obra artística"
+    }
+  },
+  {
+    "id": "empalagoso",
+    "text": "empalagoso",
+    "correctAnswer": { "text": "excesivamente dulce, sentimental o halagador" }
+  },
+  {
+    "id": "enchufado",
+    "text": "enchufado",
+    "correctAnswer": {
+      "text": "persona favorecida por sus conexiones personales"
+    }
+  },
+  {
+    "id": "estrenar",
+    "text": "estrenar",
+    "correctAnswer": { "text": "usar algo por primera vez" }
+  },
+  {
+    "id": "friolero",
+    "text": "friolero",
+    "correctAnswer": { "text": "persona muy sensible al frío" }
+  },
+  {
+    "id": "guateque",
+    "text": "guateque",
+    "correctAnswer": { "text": "fiesta informal con baile y música" }
+  },
+  {
+    "id": "madrugar",
+    "text": "madrugar",
+    "correctAnswer": { "text": "levantarse muy temprano" }
+  },
+  {
+    "id": "sobremesa",
+    "text": "sobremesa",
+    "correctAnswer": { "text": "conversación que sigue a una comida" }
+  },
+  {
+    "id": "zascandil",
+    "text": "zascandil",
+    "correctAnswer": { "text": "persona inquieta, entrometida y poco seria" }
+  }
+]

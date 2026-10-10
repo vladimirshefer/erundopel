@@ -8,6 +8,7 @@ import {
   type ClientMessage,
   type ClientSession,
   type GameStateSnapshot,
+  type Task, type CreateLobbyInput,
 } from '@erundopel/core'
 import { WebSocketServer, WebSocket } from 'ws'
 
@@ -34,8 +35,12 @@ const server = createServer(async (request, response) => {
 
   if (request.method === 'POST' && url.pathname === '/lobbies') {
     try {
-      const body = await readJson(request)
-      const result = lobbies.createLobby({ playerName: stringField(body, 'playerName') })
+      const body: CreateLobbyInput = await readJson(request) as CreateLobbyInput
+      const result = lobbies.createLobby({
+        playerName: stringField(body, 'playerName'),
+        dictionaryId: stringField(body, 'dictionaryId'),
+        dictionary: body.dictionary as Task[],
+      })
       respondJson(response, 201, result)
     } catch (error) {
       respondError(response, error)

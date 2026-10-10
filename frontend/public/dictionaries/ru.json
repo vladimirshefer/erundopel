@@ -1,0 +1,81 @@
+[
+  {
+    "id": "triolet",
+    "text": "триоле́т",
+    "correctAnswer": { "text": "твердая стихотворная форма" }
+  },
+  {
+    "id": "kurzal",
+    "text": "курза́л",
+    "correctAnswer": {
+      "text": "помещение на курорте, предназначенное для отдыха"
+    }
+  },
+  {
+    "id": "logograf",
+    "text": "логогра́ф",
+    "correctAnswer": { "text": "название первых греческих историков" }
+  },
+  {
+    "id": "cuyka",
+    "text": "цу́йка",
+    "correctAnswer": { "text": "фруктовая водка у румын и молдаван" }
+  },
+  {
+    "id": "lomonos",
+    "text": "ломоно́с",
+    "correctAnswer": { "text": "многолетнее травянистое растение" }
+  },
+  {
+    "id": "kombed",
+    "text": "комбе́д",
+    "correctAnswer": { "text": "комитет бедноты в годы «военного коммунизма»" }
+  },
+  {
+    "id": "guano",
+    "text": "гуа́но",
+    "correctAnswer": { "text": "органическое удобрение" }
+  },
+  {
+    "id": "maskaron",
+    "text": "маскаро́н",
+    "correctAnswer": { "text": "вид скульптурного украшения" }
+  },
+  {
+    "id": "yaga",
+    "text": "яга́",
+    "correctAnswer": { "text": "сказочный персонаж" }
+  },
+  {
+    "id": "loh",
+    "text": "ло́х",
+    "correctAnswer": { "text": "род деревьев и кустарников" }
+  },
+  {
+    "id": "heder",
+    "text": "хе́дер",
+    "correctAnswer": { "text": "еврейская начальная религиозная школа" }
+  },
+  {
+    "id": "ihtioz",
+    "text": "ихтио́з",
+    "correctAnswer": { "text": "наследственное заболевание кожи" }
+  },
+  {
+    "id": "zinzubel",
+    "text": "зинзу́бель",
+    "correctAnswer": { "text": "столярный инструмент" }
+  },
+  {
+    "id": "gnos",
+    "text": "гно́с",
+    "correctAnswer": {
+      "text": "разменная монета Индии и Пакистана XVIII–XX веков"
+    }
+  },
+  {
+    "id": "exgauzer",
+    "text": "эксга́узер",
+    "correctAnswer": { "text": "оборудование для устранения сырых опилок" }
+  }
+]
