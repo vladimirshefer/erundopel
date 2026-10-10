@@ -69,6 +69,14 @@ export default function GamePage() {
     return (
       <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
         <p className="text-zinc-600">{error || loc('Connecting...')}</p>
+        {error && (
+          <Link
+            className="mt-5 inline-block rounded-xl bg-amber-300 px-4 py-3 font-bold text-zinc-950 transition hover:-translate-y-0.5 hover:bg-amber-400"
+            to="/"
+          >
+            {loc('Back to main')}
+          </Link>
+        )}
       </main>
     )
   const player = lobby.players.find((item) => item.id === playerId)
