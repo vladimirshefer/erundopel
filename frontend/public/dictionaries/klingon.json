@@ -1,0 +1,52 @@
+[
+  {
+    "id": "qapla",
+    "text": "Qapla'",
+    "correctAnswer": { "text": "success" }
+  },
+  {
+    "id": "nuqneh",
+    "text": "nuqneH",
+    "correctAnswer": { "text": "what do you want?" }
+  },
+  {
+    "id": "hija",
+    "text": "HIja'",
+    "correctAnswer": { "text": "yes" }
+  },
+  {
+    "id": "ghobe",
+    "text": "ghobe'",
+    "correctAnswer": { "text": "no" }
+  },
+  {
+    "id": "tlhingan",
+    "text": "tlhIngan",
+    "correctAnswer": { "text": "a Klingon person" }
+  },
+  {
+    "id": "hol",
+    "text": "Hol",
+    "correctAnswer": { "text": "language" }
+  },
+  {
+    "id": "batlh",
+    "text": "batlh",
+    "correctAnswer": { "text": "honor" }
+  },
+  {
+    "id": "suvwI",
+    "text": "SuvwI'",
+    "correctAnswer": { "text": "warrior" }
+  },
+  {
+    "id": "hegh",
+    "text": "Hegh",
+    "correctAnswer": { "text": "death" }
+  },
+  {
+    "id": "cha",
+    "text": "cha'",
+    "correctAnswer": { "text": "two" }
+  }
+]

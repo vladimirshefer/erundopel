@@ -23,6 +23,7 @@ export class DictionaryRepositoryImpl implements DictionaryRepository {
       { id: 'ru', name: 'Русский', language: 'ru', numberOfWords: 15 },
       { id: 'de', name: 'Deutsch', language: 'de', numberOfWords: 15 },
       { id: 'es', name: 'Español', language: 'es', numberOfWords: 15 },
+      { id: 'klingon', name: 'Klingon', language: 'tlh', numberOfWords: 10 },
     ]
   }
 
