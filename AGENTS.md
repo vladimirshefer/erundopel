@@ -8,7 +8,7 @@
 - App layout must be adaptive, mobile-first.
 - Do not use raw css, use tailwind for styles.
 - Main color scheme of the website is yellow, black and white.
-- Do not use rounded borders until explicitly asked for.
+- General style is minimalistic, playful, exaggerated, fun.
 
 #### Backend
 - Generic Backend Node.js implementation of the backend for deployments as Docker container.
@@ -21,6 +21,7 @@
 #### Core
 - Game state management, lobby, players, tasks, game progression management.
 - Any actions taken by user are encapsulated in a Controller interface+class (matching the Repository in Frontend module). Namin convention - `controllers/{EntityName}Controller.ts`. Each repository is managing its own entity type - "Lobby", "Answer", "Player", etc. Repository is an interface with clear CRUD operations at first. Each repository has the `{EntityName}ControllerImpl` class implementing the interface. All the http/websocket communications is encapsulated there.
+- All entities (DTOs) used in client-server communication should be in a separate file named `{EntityName}Dto.ts` in `dto` folder.
 
 ### AI-Agents rules
 - Do not create "helper" functions until explicitly asked to.
@@ -31,3 +32,4 @@
 - Both Backend and Cloudflare setup should work.
 - As a main reference for a project structure organizing use https://github.com/vladimirshefer/ChessGrinder project.
 - No backend security is required, game state is generally visible and editable by anyone. The client decides which data is visible and what actions are permitted.
+- When user asks Agent to commit the changes, Agent must only commit own changes, ignoring any other changes in the repository.
