@@ -36,6 +36,12 @@ const server = createServer(async (request, response) => {
     try {
       const body = await readJson(request) as any
       const result = lobbies.createLobby({ playerName: body.playerName })
+      if (result.evictedCode) {
+        for (const client of clientsByLobby.get(result.evictedCode) ?? []) {
+          client.close(1001, 'Lobby expired due to inactivity.')
+        }
+        clientsByLobby.delete(result.evictedCode)
+      }
       respondJson(response, 201, result)
     } catch (error) {
       respondError(response, error)
@@ -127,7 +133,7 @@ function disconnect(socket: SocketWithSession): void {
     const result = lobbies.execute(session.code, { type: 'disconnect', playerId: session.playerId })
     broadcast(result.state)
   } catch (error) {
-    if (!(error instanceof LobbyError && error.code === 'LOBBY_CLOSED')) throw error
+    if (!(error instanceof LobbyError && (error.code === 'LOBBY_CLOSED' || error.code === 'LOBBY_NOT_FOUND'))) throw error
   }
 }
 

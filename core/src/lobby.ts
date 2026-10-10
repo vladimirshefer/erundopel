@@ -2,6 +2,7 @@ const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const ROOM_CODE_LENGTH = 6
 const MAX_NAME_LENGTH = 32
 const MAX_PLAYERS = 100
+const MAX_ACTIVE_LOBBIES = 500
 
 export type PlayerCredentials = Readonly<{ playerId: string }>
 export type LobbyPlayer = Readonly<{
@@ -43,7 +44,11 @@ export type LobbyCommand =
   | Readonly<{ type: 'submitAnswer'; playerId: string; answer: TextAnswer }>
   | Readonly<{ type: 'vote'; playerId: string; answerId: string }>
   | Readonly<{ type: 'nextTask'; playerId: string; task: Task }>
-export type LobbyCommandResult = Readonly<{ state: GameStateSnapshot; credentials?: PlayerCredentials }>
+export type LobbyCommandResult = Readonly<{
+  state: GameStateSnapshot
+  credentials?: PlayerCredentials
+  evictedCode?: string
+}>
 
 type PlayerRecord = { id: string; name: string; connected: boolean; playing: boolean; score: number }
 type AnswerRecord = AnswerOption & { playerId?: string }
@@ -80,7 +85,12 @@ export class GameState {
   #task?: Task
   #answerOptions: AnswerRecord[] = []
 
-  private constructor(readonly code: string, readonly ownerPlayerId: string, readonly createdAt: number) {}
+  private constructor(
+    readonly code: string,
+    readonly ownerPlayerId: string,
+    readonly createdAt: number,
+    public lastActiveAt = createdAt,
+  ) {}
 
   static create(code: string, playerName: string, now = Date.now()): { gameState: GameState; credentials: PlayerCredentials } {
     const owner = createPlayer(playerName)
@@ -106,6 +116,7 @@ export class GameState {
   }
 
   snapshot(): GameStateSnapshot {
+    this.lastActiveAt = Math.max(Date.now(), this.lastActiveAt + 1)
     const people = [...this.#players.values()].map(({ id, name, connected, playing, score }) => ({
       id, name, connected, playing, score, answered: this.#answers.has(id), voted: this.#votes.has(id),
     }))
@@ -282,10 +293,20 @@ export class LobbyManager {
   readonly #lobbies = new Map<string, GameState>()
 
   createLobby(input: CreateLobbyInput): LobbyCommandResult {
+    let leastRecentlyActive: GameState | undefined
+    if (this.#lobbies.size >= MAX_ACTIVE_LOBBIES) {
+      for (const lobby of this.#lobbies.values()) {
+        if (!leastRecentlyActive || lobby.lastActiveAt < leastRecentlyActive.lastActiveAt) {
+          leastRecentlyActive = lobby
+        }
+      }
+    }
+    const evictedCode = leastRecentlyActive?.code
+    if (evictedCode) this.#lobbies.delete(evictedCode)
     const code = this.#createCode()
     const { gameState, credentials } = GameState.create(code, input.playerName)
     this.#lobbies.set(code, gameState)
-    return { state: gameState.snapshot(), credentials }
+    return { state: gameState.snapshot(), credentials, evictedCode }
   }
 
   execute(code: string, command: LobbyCommand): LobbyCommandResult {

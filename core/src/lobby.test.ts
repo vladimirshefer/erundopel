@@ -13,6 +13,25 @@ test('creates a lobby with a player id outside its public state', () => {
   assert.ok(result.credentials?.playerId)
 })
 
+test('evicts the least recently active lobby after reaching the active lobby limit', () => {
+  const manager = new LobbyManager()
+  const lobbies = Array.from({ length: 500 }, () => manager.createLobby({ playerName: 'Vladimir' }))
+  const leastRecent = lobbies[1]
+  const mostRecent = lobbies[0]
+  assert.ok(leastRecent)
+  assert.ok(mostRecent)
+
+  manager.execute(mostRecent.state.code, { type: 'view' })
+  const created = manager.createLobby({ playerName: 'Anna' })
+
+  assert.equal(created.evictedCode, leastRecent.state.code)
+  assert.throws(
+    () => manager.getSnapshot(leastRecent.state.code),
+    (error: unknown) => error instanceof LobbyError && error.code === 'LOBBY_NOT_FOUND',
+  )
+  assert.equal(manager.getSnapshot(mostRecent.state.code).code, mostRecent.state.code)
+})
+
 test('uses the task supplied by the host', () => {
   const manager = new LobbyManager()
   const lobby = manager.createLobby({ playerName: 'Vladimir' })
