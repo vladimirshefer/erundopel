@@ -165,24 +165,8 @@ export default function LobbyPage() {
     }
   }
 
-  async function startGame() {
-    if (!code || !playerId) return
-
-    try {
-      let activeSocket = socket.current
-      if (activeSocket?.readyState !== WebSocket.OPEN) {
-        const connection = await lobbyRepository.reconnect(
-          code,
-          playerId,
-          setLobby,
-        )
-        activeSocket = connection.socket
-        socket.current = activeSocket
-      }
-      lobbyRepository.startGame(activeSocket)
-    } catch {
-      setError(loc('Could not start game'))
-    }
+  function startGame() {
+    if (code) navigate(`/game/${code}`)
   }
 
   async function copyInviteLink() {
@@ -325,7 +309,7 @@ export default function LobbyPage() {
                 onClick={startGame}
                 type="button"
               >
-                {loc('Start game')}
+                {loc('Choose a word')}
               </button>
             </>
           ) : (

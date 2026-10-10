@@ -6,7 +6,6 @@ import {
   toClientError,
   type ClientSession,
   type GameStateSnapshot,
-  type Task,
 } from '@erundopel/core'
 
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -31,11 +30,7 @@ export default {
       try {
         const body: unknown = await request.json()
         const playerName = stringField(body, 'playerName')
-        const dictionaryId = stringField(body, 'dictionaryId')
-        if (!isRecord(body) || !Array.isArray(body.dictionary)) {
-          throw new Error('dictionary must be an array.')
-        }
-        return createLobby(env, playerName, dictionaryId, body.dictionary as Task[])
+        return createLobby(env, playerName)
       } catch (error) {
         return errorResponse(error)
       }
@@ -66,16 +61,7 @@ export class LobbyDurableObject implements DurableObject {
       const body: unknown = await request.json()
       const code = stringField(body, 'code')
       const playerName = stringField(body, 'playerName')
-      const dictionaryId = stringField(body, 'dictionaryId')
-      if (!isRecord(body) || !Array.isArray(body.dictionary)) {
-        throw new Error('dictionary must be an array.')
-      }
-      const created = GameState.create(
-        code,
-        playerName,
-        dictionaryId,
-        body.dictionary as Task[],
-      )
+      const created = GameState.create(code, playerName)
       this.#gameState = created.gameState
       return json({ state: created.gameState.snapshot(), credentials: created.credentials }, 201)
     }
@@ -196,15 +182,13 @@ export class LobbyDurableObject implements DurableObject {
 async function createLobby(
   env: Env,
   playerName: string,
-  dictionaryId: string,
-  dictionary: Task[],
 ): Promise<Response> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const code = createRoomCode()
     const stub = env.LOBBY.get(env.LOBBY.idFromName(code))
     const response = await stub.fetch('https://lobby.internal/create', {
       method: 'POST',
-      body: JSON.stringify({ code, playerName, dictionaryId, dictionary }),
+      body: JSON.stringify({ code, playerName }),
       headers: { 'content-type': 'application/json' },
     })
     if (response.status !== 409) return response

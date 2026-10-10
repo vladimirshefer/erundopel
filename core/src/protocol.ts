@@ -1,9 +1,10 @@
 import {
-  LobbyError,
   type GameStateSnapshot,
   type LobbyCommand,
   type LobbyCommandResult,
+  LobbyError,
   type PlayerCredentials,
+  type Task,
   type TextAnswer,
 } from './lobby.js'
 
@@ -19,10 +20,10 @@ export type ClientMessage =
   | Readonly<{ type: 'reconnect'; code: string; playerId: string }>
   | Readonly<{ type: 'leave' }>
   | Readonly<{ type: 'closeLobby' }>
-  | Readonly<{ type: 'startTask' }>
+  | Readonly<{ type: 'startTask'; task: Task }>
   | Readonly<{ type: 'submitAnswer'; answer: TextAnswer }>
   | Readonly<{ type: 'vote'; answerId: string }>
-  | Readonly<{ type: 'nextTask' }>
+  | Readonly<{ type: 'nextTask'; task: Task }>
 
 export type ClientResponse =
   | Readonly<{ type: 'viewed'; state: GameStateSnapshot }>
@@ -68,9 +69,23 @@ export function parseClientMessage(raw: string): ClientMessage {
       }
     case 'leave':
     case 'closeLobby':
-    case 'startTask':
-    case 'nextTask':
       return { type }
+    case 'startTask':
+    case 'nextTask': {
+      if (!isRecord(message) || !isRecord(message.task) || typeof message.task.text !== 'string') {
+        throw new Error('task.text must be a string.')
+      }
+      if (!isRecord(message.task.correctAnswer) || typeof message.task.correctAnswer.text !== 'string') {
+        throw new Error('task.correctAnswer.text must be a string.')
+      }
+      return {
+        type,
+        task: {
+          text: message.task.text,
+          correctAnswer: { text: message.task.correctAnswer.text },
+        },
+      }
+    }
     case 'submitAnswer':
       return { type, answer: textAnswerField(message, 'answer') }
     case 'vote':
@@ -138,7 +153,7 @@ export function dispatchClientMessage(
     }
     case 'startTask': {
       const currentSession = requireSession(session)
-      return execute(currentSession.code, { type: 'startTask', playerId: currentSession.playerId })
+      return execute(currentSession.code, { type: 'startTask', playerId: currentSession.playerId, task: message.task })
     }
     case 'submitAnswer': {
       const currentSession = requireSession(session)
@@ -158,7 +173,7 @@ export function dispatchClientMessage(
     }
     case 'nextTask': {
       const currentSession = requireSession(session)
-      return execute(currentSession.code, { type: 'nextTask', playerId: currentSession.playerId })
+      return execute(currentSession.code, { type: 'nextTask', playerId: currentSession.playerId, task: message.task })
     }
   }
 }

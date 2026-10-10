@@ -13,25 +13,15 @@ test('creates a lobby with a player id outside its public state', () => {
   assert.ok(result.credentials?.playerId)
 })
 
-test('uses the selected question dictionary', () => {
+test('uses the task supplied by the host', () => {
   const manager = new LobbyManager()
-  const lobby = manager.createLobby({
-    playerName: 'Vladimir',
-    dictionaryId: 'de',
-    dictionary: [
-      {
-        id: 'backpfeifengesicht',
-        text: 'Backpfeifengesicht',
-        correctAnswer: { text: 'ein Gesicht, das nach einer Ohrfeige verlangt' },
-      },
-    ],
-  })
+  const lobby = manager.createLobby({ playerName: 'Vladimir' })
   const owner = lobby.credentials!
 
-  assert.equal(lobby.state.dictionaryId, 'de')
   const started = manager.execute(lobby.state.code, {
     type: 'startTask',
     playerId: owner.playerId,
+    task: { text: 'Backpfeifengesicht', correctAnswer: { text: 'ein Gesicht, das nach einer Ohrfeige verlangt' } },
   })
   assert.equal(started.state.task?.text, 'Backpfeifengesicht')
 })
@@ -92,7 +82,11 @@ test('does not wait for spectators to answer', () => {
   const lobby = manager.createLobby({ playerName: 'Vladimir' })
   const owner = lobby.credentials!
   manager.execute(lobby.state.code, { type: 'spectate', playerName: 'Ghost-1' })
-  manager.execute(lobby.state.code, { type: 'startTask', playerId: owner.playerId })
+  manager.execute(lobby.state.code, {
+    type: 'startTask',
+    playerId: owner.playerId,
+    task: { text: 'Слово', correctAnswer: { text: 'Значение' } },
+  })
 
   const completed = manager.execute(lobby.state.code, {
     type: 'submitAnswer',
@@ -156,7 +150,11 @@ test('starts a task and completes after every current player answers once', () =
   assert.ok(owner)
   assert.ok(player)
 
-  const started = manager.execute(lobby.state.code, { type: 'startTask', playerId: owner.playerId })
+  const started = manager.execute(lobby.state.code, {
+    type: 'startTask',
+    playerId: owner.playerId,
+    task: { text: 'Слово', correctAnswer: { text: 'Значение' } },
+  })
   assert.equal(started.state.phase, 'answering')
   assert.ok(started.state.task?.text)
   assert.equal(JSON.stringify(started.state).includes('correctAnswer'), false)
@@ -184,7 +182,11 @@ test('does not allow a second answer from the same player', () => {
   assert.ok(owner)
   manager.execute(lobby.state.code, { type: 'join', playerName: 'Anna' })
 
-  manager.execute(lobby.state.code, { type: 'startTask', playerId: owner.playerId })
+  manager.execute(lobby.state.code, {
+    type: 'startTask',
+    playerId: owner.playerId,
+    task: { text: 'Слово', correctAnswer: { text: 'Значение' } },
+  })
   manager.execute(lobby.state.code, {
     type: 'submitAnswer',
     playerId: owner.playerId,
@@ -210,7 +212,7 @@ test('maps WebSocket messages to core commands', () => {
 
   const session = { code: lobby.state.code, playerId: owner.playerId }
   const started = dispatchClientMessage(
-    parseClientMessage('{"type":"startTask"}'),
+    parseClientMessage('{"type":"startTask","task":{"text":"Слово","correctAnswer":{"text":"Значение"}}}'),
     session,
     manager.execute.bind(manager),
   )
@@ -231,7 +233,11 @@ test('runs a round from answers to scores', () => {
   const joined = manager.execute(lobby.state.code, { type: 'join', playerName: 'Anna' })
   const anna = joined.credentials!
 
-  manager.execute(lobby.state.code, { type: 'startTask', playerId: owner.playerId })
+  manager.execute(lobby.state.code, {
+    type: 'startTask',
+    playerId: owner.playerId,
+    task: { text: 'Слово', correctAnswer: { text: 'Значение' } },
+  })
   manager.execute(lobby.state.code, {
     type: 'submitAnswer',
     playerId: owner.playerId,

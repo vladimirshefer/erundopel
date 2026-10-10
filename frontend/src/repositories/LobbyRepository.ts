@@ -1,5 +1,3 @@
-import type { DictionaryContentDto } from './DictionaryRepository.ts'
-
 export type LobbyPlayer = {
   id: string
   name: string
@@ -10,11 +8,11 @@ export type LobbyPlayer = {
 }
 
 export type AnswerOption = { id: string; text: string }
+export type RoundTask = { text: string; correctAnswer: { text: string } }
 
 export type LobbyState = {
   code: string
   ownerPlayerId: string
-  dictionaryId: string
   phase: 'lobby' | 'answering' | 'voting' | 'results'
   players: LobbyPlayer[]
   spectators: LobbyPlayer[]
@@ -38,31 +36,23 @@ type LobbyConnection = {
 }
 
 export interface LobbyRepository {
-  createLobby(
-    playerName: string,
-    dictionaryId: string,
-    dictionary: DictionaryContentDto,
-  ): Promise<{ state: LobbyState; credentials: PlayerSession }>
+  createLobby(playerName: string): Promise<{ state: LobbyState; credentials: PlayerSession }>
   viewLobby(code: string, onState: (state: LobbyState) => void): Promise<LobbyConnection>
   spectate(socket: WebSocket, code: string, playerName: string): Promise<PlayerSession>
   joinLobby(socket: WebSocket, playerName: string): Promise<PlayerSession>
   reconnect(code: string, playerId: string, onState: (state: LobbyState) => void): Promise<LobbyConnection>
-  startGame(socket: WebSocket): void
+  startGame(socket: WebSocket, task: RoundTask): void
   submitAnswer(socket: WebSocket, text: string): void
   vote(socket: WebSocket, answerId: string): void
-  nextRound(socket: WebSocket): void
+  nextRound(socket: WebSocket, task: RoundTask): void
 }
 
 export class LobbyRepositoryImpl implements LobbyRepository {
-  async createLobby(
-    playerName: string,
-    dictionaryId: string,
-    dictionary: DictionaryContentDto,
-  ) {
+  async createLobby(playerName: string) {
     const response = await fetch('/lobbies', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ playerName, dictionaryId, dictionary }),
+      body: JSON.stringify({ playerName }),
     })
     const body = (await response.json()) as {
       state?: LobbyState
@@ -120,8 +110,8 @@ export class LobbyRepositoryImpl implements LobbyRepository {
     return this.connect(code, { type: 'reconnect', code, playerId }, onState)
   }
 
-  startGame(socket: WebSocket) {
-    socket.send(JSON.stringify({ type: 'startTask' }))
+  startGame(socket: WebSocket, task: RoundTask) {
+    socket.send(JSON.stringify({ type: 'startTask', task }))
   }
   submitAnswer(socket: WebSocket, text: string) {
     socket.send(JSON.stringify({ type: 'submitAnswer', answer: { text } }))
@@ -129,8 +119,8 @@ export class LobbyRepositoryImpl implements LobbyRepository {
   vote(socket: WebSocket, answerId: string) {
     socket.send(JSON.stringify({ type: 'vote', answerId }))
   }
-  nextRound(socket: WebSocket) {
-    socket.send(JSON.stringify({ type: 'nextTask' }))
+  nextRound(socket: WebSocket, task: RoundTask) {
+    socket.send(JSON.stringify({ type: 'nextTask', task }))
   }
 
   private connect(

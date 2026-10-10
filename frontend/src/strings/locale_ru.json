@@ -61,5 +61,14 @@
   "Profile": "Профиль",
   "Profile saved": "Профиль сохранён",
   "Save profile": "Сохранить профиль",
-  "Your name is used when you join a game": "Ваше имя используется при входе в игру"
+  "Your name is used when you join a game": "Ваше имя используется при входе в игру",
+  "Choose a word": "Выбрать слово",
+  "Dictionary": "Словарь",
+  "Other words": "Другие слова",
+  "Or write your own": "Или задайте своё",
+  "Word": "Слово",
+  "Correct meaning": "Правильное значение",
+  "Start next round": "Начать следующий раунд",
+  "Could not load dictionary": "Не удалось загрузить словарь",
+  "Enter a word and its meaning": "Введите слово и его значение"
 }

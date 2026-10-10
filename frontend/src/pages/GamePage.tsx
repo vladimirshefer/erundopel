@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useContext, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { LanguageContext } from '../contexts/LanguageContext.tsx'
 import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
+import dictionaryRepository, {
+  type DictionaryContentDto,
+} from '../repositories/DictionaryRepository.ts'
 import lobbyRepository, {
   type LobbyState,
+  type RoundTask,
 } from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
@@ -14,8 +19,19 @@ export default function GamePage() {
   const [lobby, setLobby] = useState<LobbyState>()
   const [error, setError] = useState('')
   const [myAnswer, setMyAnswer] = useState('')
+  const [language] = useContext(LanguageContext)
+  const dictionaries = dictionaryRepository.getDictionaries()
+  const [dictionaryId, setDictionaryId] = useState(
+    () => dictionaries.find((dictionary) => dictionary.language === language)?.id ?? dictionaries[0]?.id ?? '',
+  )
+  const [dictionaryEntries, setDictionaryEntries] = useState<DictionaryContentDto>([])
+  const [candidates, setCandidates] = useState<DictionaryContentDto>([])
+  const [selectedTask, setSelectedTask] = useState<RoundTask>()
+  const [customWord, setCustomWord] = useState('')
+  const [customAnswer, setCustomAnswer] = useState('')
   const socket = useRef<WebSocket | null>(null)
   const playerId = localStorage.getItem('erundopel.playerId')
+  const isOwner = lobby?.ownerPlayerId === playerId
 
   useEffect(() => {
     if (!code || !playerId) {
@@ -38,8 +54,16 @@ export default function GamePage() {
   }, [code, navigate])
 
   useEffect(() => {
-    if (lobby?.phase === 'lobby') navigate(`/lobby/${lobby.code}`)
-  }, [lobby, navigate])
+    if (!isOwner) return
+    dictionaryRepository
+      .getDictionaryContent(dictionaryId)
+      .then((entries) => {
+        setDictionaryEntries(entries)
+        setCandidates([...entries].sort(() => Math.random() - 0.5).slice(0, 4))
+        setSelectedTask(undefined)
+      })
+      .catch(() => setError(loc('Could not load dictionary')))
+  }, [dictionaryId, isOwner])
 
   if (!lobby || !playerId)
     return (
@@ -48,7 +72,6 @@ export default function GamePage() {
       </main>
     )
   const player = lobby.players.find((item) => item.id === playerId)
-  const isOwner = lobby.ownerPlayerId === playerId
 
   function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -65,6 +88,28 @@ export default function GamePage() {
     if (answerId) lobbyRepository.vote(socket.current!, answerId)
   }
 
+  function startRound(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!socket.current) return
+
+    let task = selectedTask
+    if (customWord.trim() || customAnswer.trim()) {
+      if (!customWord.trim() || !customAnswer.trim()) {
+        setError(loc('Enter a word and its meaning'))
+        return
+      }
+      task = { text: customWord.trim(), correctAnswer: { text: customAnswer.trim() } }
+    }
+    if (!task) {
+      setError(loc('Choose a word'))
+      return
+    }
+
+    setError('')
+    if (lobby?.phase === 'lobby') lobbyRepository.startGame(socket.current, task)
+    if (lobby?.phase === 'results') lobbyRepository.nextRound(socket.current, task)
+  }
+
   return (
     <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
       <h1 className="text-3xl font-black tracking-tight text-zinc-950 sm:text-4xl">
@@ -78,11 +123,6 @@ export default function GamePage() {
       {lobby.phase === 'lobby' && (
         <>
           <p className="mt-8 text-zinc-600">{loc('Send this game code to friends and wait for them here.')}</p>
-          {isOwner && (
-            <button className="mt-2 rounded-xl bg-zinc-950 px-5 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-zinc-700" onClick={() => lobbyRepository.startGame(socket.current!)}>
-              {loc('Start game')}
-            </button>
-          )}
           {!isOwner && <p className="mt-8 text-zinc-600">{loc('Waiting for the host to start.')}</p>}
         </>
       )}
@@ -141,14 +181,75 @@ export default function GamePage() {
               )?.text
             }
           </p>
-          {isOwner ? (
-            <button className="mt-5 rounded-xl bg-zinc-950 px-5 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-zinc-700" onClick={() => lobbyRepository.nextRound(socket.current!)}>
-              {loc('Next round')}
-            </button>
-          ) : (
+          {!isOwner && (
             <p className="mt-5 text-zinc-600">{loc('Waiting for the host to start the next round.')}</p>
           )}
         </>
+      )}
+
+      {isOwner && (lobby.phase === 'lobby' || lobby.phase === 'results') && (
+        <form className="mt-8 border-4 border-zinc-950 bg-white p-5" onSubmit={startRound}>
+          <h2 className="text-2xl font-black text-zinc-950">{loc('Choose a word')}</h2>
+          <label className="mt-5 flex flex-col gap-1.5 text-sm font-bold text-zinc-800">
+            {loc('Dictionary')}
+            <select
+              className="border-2 border-zinc-950 bg-white px-3 py-2.5 outline-none focus:ring-4 focus:ring-amber-300"
+              onChange={(event) => setDictionaryId(event.target.value)}
+              value={dictionaryId}
+            >
+              {dictionaries.map((dictionary) => (
+                <option key={dictionary.id} value={dictionary.id}>{dictionary.name}</option>
+              ))}
+            </select>
+          </label>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {candidates.map((candidate) => (
+              <button
+                className={`min-h-32 border-4 border-zinc-950 p-4 text-left text-lg font-black text-zinc-950 shadow-[4px_4px_0_0_#18181b] transition hover:-translate-y-1 ${selectedTask?.text === candidate.text ? 'bg-amber-300' : 'bg-white'}`}
+                key={candidate.id}
+                onClick={() => {
+                  setSelectedTask({ text: candidate.text, correctAnswer: candidate.correctAnswer })
+                  setCustomWord('')
+                  setCustomAnswer('')
+                }}
+                type="button"
+              >
+                {candidate.text}
+              </button>
+            ))}
+          </div>
+          <button
+            className="mt-4 border-2 border-zinc-950 bg-white px-4 py-2 font-bold text-zinc-950 hover:bg-zinc-100"
+            disabled={dictionaryEntries.length === 0}
+            onClick={() => {
+              setCandidates([...dictionaryEntries].sort(() => Math.random() - 0.5).slice(0, 4))
+              setSelectedTask(undefined)
+            }}
+            type="button"
+          >
+            {loc('Other words')}
+          </button>
+          <p className="mt-8 text-sm font-bold uppercase tracking-widest text-zinc-500">{loc('Or write your own')}</p>
+          <label className="mt-3 flex flex-col gap-1.5 text-sm font-bold text-zinc-800">
+            {loc('Word')}
+            <input
+              className="border-2 border-zinc-950 px-3 py-2.5 outline-none focus:ring-4 focus:ring-amber-300"
+              onChange={(event) => setCustomWord(event.target.value)}
+              value={customWord}
+            />
+          </label>
+          <label className="mt-3 flex flex-col gap-1.5 text-sm font-bold text-zinc-800">
+            {loc('Correct meaning')}
+            <input
+              className="border-2 border-zinc-950 px-3 py-2.5 outline-none focus:ring-4 focus:ring-amber-300"
+              onChange={(event) => setCustomAnswer(event.target.value)}
+              value={customAnswer}
+            />
+          </label>
+          <button className="mt-6 w-full bg-amber-300 px-5 py-3 text-lg font-black text-zinc-950 hover:bg-amber-400" type="submit">
+            {lobby.phase === 'lobby' ? loc('Start game') : loc('Start next round')}
+          </button>
+        </form>
       )}
 
       {error && <p className="mt-5 rounded-xl bg-amber-100 px-4 py-3 text-zinc-900" role="alert">{error}</p>}

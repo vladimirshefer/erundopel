@@ -1,5 +1,3 @@
-import tasks from './tasks.json'
-
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const ROOM_CODE_LENGTH = 6
 const MAX_NAME_LENGTH = 32
@@ -16,13 +14,12 @@ export type LobbyPlayer = Readonly<{
 }>
 export type TextAnswer = Readonly<{ text: string }>
 export type GamePhase = 'lobby' | 'answering' | 'voting' | 'results'
-export type Task = Readonly<{ id: string; text: string; correctAnswer: TextAnswer }>
-export type PublicTask = Readonly<Pick<Task, 'id' | 'text'>>
+export type Task = Readonly<{ text: string; correctAnswer: TextAnswer }>
+export type PublicTask = Readonly<Pick<Task, 'text'>>
 export type AnswerOption = Readonly<{ id: string; text: string }>
 export type GameStateSnapshot = Readonly<{
   code: string
   ownerPlayerId: string
-  dictionaryId: string
   createdAt: number
   revision: number
   closed: boolean
@@ -33,11 +30,7 @@ export type GameStateSnapshot = Readonly<{
   players: readonly LobbyPlayer[]
   spectators: readonly LobbyPlayer[]
 }>
-export type CreateLobbyInput = Readonly<{
-  playerName: string
-  dictionaryId?: string
-  dictionary?: readonly Task[]
-}>
+export type CreateLobbyInput = Readonly<{ playerName: string }>
 export type LobbyCommand =
   | Readonly<{ type: 'view' }>
   | Readonly<{ type: 'spectate'; playerName: string }>
@@ -46,10 +39,10 @@ export type LobbyCommand =
   | Readonly<{ type: 'disconnect'; playerId: string }>
   | Readonly<{ type: 'leave'; playerId: string }>
   | Readonly<{ type: 'close'; playerId: string }>
-  | Readonly<{ type: 'startTask'; playerId: string }>
+  | Readonly<{ type: 'startTask'; playerId: string; task: Task }>
   | Readonly<{ type: 'submitAnswer'; playerId: string; answer: TextAnswer }>
   | Readonly<{ type: 'vote'; playerId: string; answerId: string }>
-  | Readonly<{ type: 'nextTask'; playerId: string }>
+  | Readonly<{ type: 'nextTask'; playerId: string; task: Task }>
 export type LobbyCommandResult = Readonly<{ state: GameStateSnapshot; credentials?: PlayerCredentials }>
 
 type PlayerRecord = { id: string; name: string; connected: boolean; playing: boolean; score: number }
@@ -87,23 +80,11 @@ export class GameState {
   #task?: Task
   #answerOptions: AnswerRecord[] = []
 
-  private constructor(
-    readonly code: string,
-    readonly ownerPlayerId: string,
-    readonly createdAt: number,
-    readonly dictionaryId: string,
-    readonly dictionary: readonly Task[],
-  ) {}
+  private constructor(readonly code: string, readonly ownerPlayerId: string, readonly createdAt: number) {}
 
-  static create(
-    code: string,
-    playerName: string,
-    dictionaryId = 'ru',
-    dictionary: readonly Task[] = tasks,
-    now = Date.now(),
-  ): { gameState: GameState; credentials: PlayerCredentials } {
+  static create(code: string, playerName: string, now = Date.now()): { gameState: GameState; credentials: PlayerCredentials } {
     const owner = createPlayer(playerName)
-    const gameState = new GameState(code, owner.id, now, dictionaryId, dictionary)
+    const gameState = new GameState(code, owner.id, now)
     gameState.#players.set(owner.id, owner)
     return { gameState, credentials: credentialsFor(owner) }
   }
@@ -117,10 +98,10 @@ export class GameState {
       case 'disconnect': return this.#setConnected(command.playerId, false)
       case 'leave': return this.#leave(command.playerId)
       case 'close': return this.#close(command.playerId)
-      case 'startTask': return this.#startTask(command.playerId)
+      case 'startTask': return this.#startTask(command.playerId, command.task)
       case 'submitAnswer': return this.#submitAnswer(command.playerId, command.answer)
       case 'vote': return this.#vote(command.playerId, command.answerId)
-      case 'nextTask': return this.#nextTask(command.playerId)
+      case 'nextTask': return this.#nextTask(command.playerId, command.task)
     }
   }
 
@@ -131,12 +112,11 @@ export class GameState {
     return {
       code: this.code,
       ownerPlayerId: this.ownerPlayerId,
-      dictionaryId: this.dictionaryId,
       createdAt: this.createdAt,
       revision: this.#revision,
       closed: this.#closed,
       phase: this.#phase,
-      task: this.#task && { id: this.#task.id, text: this.#task.text },
+      task: this.#task && { text: this.#task.text },
       answerOptions: this.#answerOptions.map(({ id, text }) => ({ id, text })),
       correctAnswerId: this.#phase === 'results' ? 'correct' : undefined,
       players: people.filter((player) => player.playing).map(({ playing: _, ...player }) => player),
@@ -226,22 +206,28 @@ export class GameState {
     return { state: this.snapshot() }
   }
 
-  #startTask(playerId: string): LobbyCommandResult {
+  #startTask(playerId: string, task: Task): LobbyCommandResult {
     this.#assertOpen()
     this.#assertOwner(playerId)
     if (this.#phase !== 'lobby') throw new LobbyError('INVALID_GAME_PHASE', 'A task has already been started.')
-    return this.#beginTask()
+    return this.#beginTask(task)
   }
 
-  #nextTask(playerId: string): LobbyCommandResult {
+  #nextTask(playerId: string, task: Task): LobbyCommandResult {
     this.#assertOpen()
     this.#assertOwner(playerId)
     if (this.#phase !== 'results') throw new LobbyError('INVALID_GAME_PHASE', 'Show the results first.')
-    return this.#beginTask()
+    return this.#beginTask(task)
   }
 
-  #beginTask(): LobbyCommandResult {
-    this.#task = this.dictionary[Math.floor(Math.random() * this.dictionary.length)]
+  #beginTask(task: Task): LobbyCommandResult {
+    if (!task || typeof task.text !== 'string' || !task.text.trim()) {
+      throw new LobbyError('INVALID_ANSWER', 'Task text must not be empty.')
+    }
+    this.#task = {
+      text: task.text.trim(),
+      correctAnswer: normalizeAnswer(task.correctAnswer),
+    }
     this.#answers.clear()
     this.#votes.clear()
     this.#answerOptions = []
@@ -297,12 +283,7 @@ export class LobbyManager {
 
   createLobby(input: CreateLobbyInput): LobbyCommandResult {
     const code = this.#createCode()
-    const { gameState, credentials } = GameState.create(
-      code,
-      input.playerName,
-      input.dictionaryId,
-      input.dictionary,
-    )
+    const { gameState, credentials } = GameState.create(code, input.playerName)
     this.#lobbies.set(code, gameState)
     return { state: gameState.snapshot(), credentials }
   }

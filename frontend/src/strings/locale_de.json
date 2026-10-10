@@ -59,5 +59,14 @@
   "Who is playing?": "Wer spielt?",
   "Your answer": "Deine Antwort",
   "Your name": "Dein Name",
-  "Your name is used when you join a game": "Dein Name wird verwendet, wenn du einem Spiel beitrittst"
+  "Your name is used when you join a game": "Dein Name wird verwendet, wenn du einem Spiel beitrittst",
+  "Choose a word": "Wort auswählen",
+  "Dictionary": "Wörterbuch",
+  "Other words": "Andere Wörter",
+  "Or write your own": "Oder eigenes Wort eingeben",
+  "Word": "Wort",
+  "Correct meaning": "Richtige Bedeutung",
+  "Start next round": "Nächste Runde starten",
+  "Could not load dictionary": "Wörterbuch konnte nicht geladen werden",
+  "Enter a word and its meaning": "Gib ein Wort und seine Bedeutung ein"
 }
