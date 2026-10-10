@@ -1,190 +1,55 @@
-import {
-  LobbyError,
-} from './lobby.js'
-import type { ClientDispatchResultDto } from './dto/ClientDispatchResultDto.js'
-import type { ClientErrorResponseDto } from './dto/ClientErrorResponseDto.js'
-import type { ClientMessageDto } from './dto/ClientMessageDto.js'
-import type { ClientSessionDto } from './dto/ClientSessionDto.js'
-import type { LobbyCommandDto } from './dto/LobbyCommandDto.js'
-import type { LobbyCommandResultDto } from './dto/LobbyCommandResultDto.js'
-import type { PlayerCredentialsDto } from './dto/PlayerCredentialsDto.js'
-import type { TextAnswerDto } from './dto/TextAnswerDto.js'
+import type { LobbyController } from "./controllers/LobbyController.js";
+import type { ClientErrorResponseDto } from "./dto/ClientErrorResponseDto.js";
+import type { ClientMessageDto } from "./dto/ClientMessageDto.js";
+import type { ClientSessionDto } from "./dto/ClientSessionDto.js";
+import { LobbyError } from "./lobby.js";
 
-export type ExecuteLobbyCommand = (
-  code: string,
-  command: LobbyCommandDto,
-) => LobbyCommandResultDto
-
-export function parseClientMessage(raw: string): ClientMessageDto {
-  const message: unknown = JSON.parse(raw)
-  const type = stringField(message, 'type')
-
-  switch (type) {
-    case 'view':
-      return { type, code: stringField(message, 'code') }
-    case 'spectate':
-      return { type, code: stringField(message, 'code'), playerName: stringField(message, 'playerName') }
-    case 'join':
-      return { type, playerName: stringField(message, 'playerName') }
-    case 'reconnect':
-      return {
-        type,
-        code: stringField(message, 'code'),
-        playerId: stringField(message, 'playerId'),
-      }
-    case 'leave':
-    case 'closeLobby':
-      return { type }
-    case 'startTask':
-    case 'nextTask': {
-      if (!isRecord(message) || !isRecord(message.task) || typeof message.task.text !== 'string') {
-        throw new Error('task.text must be a string.')
-      }
-      if (!isRecord(message.task.correctAnswer) || typeof message.task.correctAnswer.text !== 'string') {
-        throw new Error('task.correctAnswer.text must be a string.')
-      }
-      if (!Array.isArray(message.task.wrongAnswers) || !message.task.wrongAnswers.every((answer) => isRecord(answer) && typeof answer.text === 'string')) {
-        throw new Error('task.wrongAnswers must be an array of text answers.')
-      }
-      return {
-        type,
-        task: {
-          text: message.task.text,
-          correctAnswer: { text: message.task.correctAnswer.text },
-          wrongAnswers: message.task.wrongAnswers.map((answer) => ({ text: answer.text })),
-        },
-      }
-    }
-    case 'submitAnswer':
-      return { type, answer: textAnswerField(message, 'answer') }
-    case 'vote':
-      return { type, answerId: stringField(message, 'answerId') }
-    default:
-      throw new Error(`Unknown message type: ${type}`)
-  }
+export function parseClientMessage(raw: string): ClientMessageDto<any> {
+  return JSON.parse(raw) as ClientMessageDto<any>;
 }
 
 export function dispatchClientMessage(
-  message: ClientMessageDto,
+  message: ClientMessageDto<any>,
   session: ClientSessionDto | undefined,
-  execute: ExecuteLobbyCommand,
-): ClientDispatchResultDto {
+  controller: LobbyController,
+) {
   switch (message.type) {
-    case 'view': {
-      assertNoSession(session)
-      const result = execute(message.code, { type: 'view' })
-      return {
-        state: result.state,
-        response: { type: 'viewed', state: result.state },
-        viewCode: result.state.code,
-      }
-    }
-    case 'spectate': {
-      assertNoSession(session)
-      const result = execute(message.code, { type: 'spectate', playerName: message.playerName })
-      const credentials = requireCredentials(result)
-      return {
-        state: result.state,
-        response: { type: 'spectating', state: result.state, credentials },
-        nextSession: { code: result.state.code, playerId: credentials.playerId },
-      }
-    }
-    case 'join': {
-      const currentSession = requireSession(session)
-      const result = execute(currentSession.code, { type: 'join', playerId: currentSession.playerId, playerName: message.playerName })
-      const credentials = requireCredentials(result)
-      return {
-        state: result.state,
-        response: { type: 'joined', state: result.state, credentials },
-        nextSession: { code: result.state.code, playerId: credentials.playerId },
-      }
-    }
-    case 'reconnect': {
-      assertNoSession(session)
-      const result = execute(message.code, {
-        type: 'reconnect',
-        playerId: message.playerId,
-      })
-      return {
-        state: result.state,
-        response: { type: 'resumed', state: result.state },
-        nextSession: { code: result.state.code, playerId: message.playerId },
-      }
-    }
-    case 'leave': {
-      const currentSession = requireSession(session)
-      const result = execute(currentSession.code, { type: 'leave', playerId: currentSession.playerId })
-      return { state: result.state, response: { type: 'left' }, detach: true }
-    }
-    case 'closeLobby': {
-      const currentSession = requireSession(session)
-      return execute(currentSession.code, { type: 'close', playerId: currentSession.playerId })
-    }
-    case 'startTask': {
-      const currentSession = requireSession(session)
-      return execute(currentSession.code, { type: 'startTask', playerId: currentSession.playerId, task: message.task })
-    }
-    case 'submitAnswer': {
-      const currentSession = requireSession(session)
-      return execute(currentSession.code, {
-        type: 'submitAnswer',
-        playerId: currentSession.playerId,
-        answer: message.answer,
-      })
-    }
-    case 'vote': {
-      const currentSession = requireSession(session)
-      return execute(currentSession.code, {
-        type: 'vote',
-        playerId: currentSession.playerId,
-        answerId: message.answerId,
-      })
-    }
-    case 'nextTask': {
-      const currentSession = requireSession(session)
-      return execute(currentSession.code, { type: 'nextTask', playerId: currentSession.playerId, task: message.task })
-    }
+    case "view":
+      return controller.view(message.body, session);
+    case "spectate":
+      return controller.spectate(message.body, session);
+    case "join":
+      return controller.join(message.body, session);
+    case "reconnect":
+      return controller.reconnect(message.body, session);
+    case "leave":
+      return controller.leave(message.body, session);
+    case "closeLobby":
+      return controller.closeLobby(message.body, session);
+    case "startTask":
+      return controller.startTask(message.body, session);
+    case "submitAnswer":
+      return controller.submitAnswer(message.body, session);
+    case "vote":
+      return controller.vote(message.body, session);
+    case "nextTask":
+      return controller.nextTask(message.body, session);
   }
+  throw new Error(`Unknown message type: ${message.type}`);
 }
 
 export function toClientError(error: unknown): ClientErrorResponseDto {
   if (error instanceof LobbyError) {
-    return { type: 'error', error: { code: error.code, message: error.message } }
+    return {
+      type: "error",
+      error: { code: error.code, message: error.message },
+    } satisfies ClientErrorResponseDto;
   }
   return {
-    type: 'error',
-    error: { code: 'BAD_REQUEST', message: error instanceof Error ? error.message : 'Invalid request.' },
-  }
-}
-
-function assertNoSession(session: ClientSessionDto | undefined): void {
-  if (session) throw new Error('Leave the current lobby before joining another one.')
-}
-
-function requireSession(session: ClientSessionDto | undefined): ClientSessionDto {
-  if (!session) throw new LobbyError('PLAYER_NOT_FOUND', 'Join a lobby first.')
-  return session
-}
-
-function requireCredentials(result: LobbyCommandResultDto): PlayerCredentialsDto {
-  if (!result.credentials) throw new Error('Join did not return player credentials.')
-  return result.credentials
-}
-
-function stringField(value: unknown, field: string): string {
-  if (!isRecord(value) || typeof value[field] !== 'string') {
-    throw new Error(`${field} must be a string.`)
-  }
-  return value[field]
-}
-
-function textAnswerField(value: unknown, field: string): TextAnswerDto {
-  if (!isRecord(value) || !isRecord(value[field]) || typeof value[field].text !== 'string') {
-    throw new Error(`${field}.text must be a string.`)
-  }
-  return { text: value[field].text }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object'
+    type: "error",
+    error: {
+      code: "BAD_REQUEST",
+      message: error instanceof Error ? error.message : "Invalid request.",
+    },
+  } satisfies ClientErrorResponseDto;
 }

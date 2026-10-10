@@ -1,64 +1,45 @@
 import type { TaskDto } from './TaskDto.ts'
 import type { TextAnswerDto } from './TextAnswerDto.ts'
 
-interface ViewClientMessageDto {
-  type: 'view'
+export interface ClientMessageDto<T> {
+  type: string
+  body: T
+}
+
+export interface ViewClientMessageDto {
   code: string
 }
 
-interface SpectateClientMessageDto {
-  type: 'spectate'
+export interface SpectateClientMessageDto {
   code: string
   playerName: string
 }
 
-interface JoinClientMessageDto {
-  type: 'join'
+export interface JoinClientMessageDto {
   playerName: string
 }
 
-interface ReconnectClientMessageDto {
-  type: 'reconnect'
+export interface ReconnectClientMessageDto {
   code: string
   playerId: string
 }
 
-interface LeaveClientMessageDto {
-  type: 'leave'
-}
+export interface LeaveClientMessageDto {}
 
-interface CloseLobbyClientMessageDto {
-  type: 'closeLobby'
-}
+export interface CloseLobbyClientMessageDto {}
 
-interface StartTaskClientMessageDto {
-  type: 'startTask'
+export interface StartTaskClientMessageDto {
   task: TaskDto
 }
 
-interface SubmitAnswerClientMessageDto {
-  type: 'submitAnswer'
+export interface SubmitAnswerClientMessageDto {
   answer: TextAnswerDto
 }
 
-interface VoteClientMessageDto {
-  type: 'vote'
+export interface VoteClientMessageDto {
   answerId: string
 }
 
-interface NextTaskClientMessageDto {
-  type: 'nextTask'
+export interface NextTaskClientMessageDto {
   task: TaskDto
 }
-
-export type ClientMessageDto =
-  | ViewClientMessageDto
-  | SpectateClientMessageDto
-  | JoinClientMessageDto
-  | ReconnectClientMessageDto
-  | LeaveClientMessageDto
-  | CloseLobbyClientMessageDto
-  | StartTaskClientMessageDto
-  | SubmitAnswerClientMessageDto
-  | VoteClientMessageDto
-  | NextTaskClientMessageDto

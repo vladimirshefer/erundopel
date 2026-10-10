@@ -1,64 +1,45 @@
-import type { TaskDto } from './TaskDto.js'
-import type { TextAnswerDto } from './TextAnswerDto.js'
+import type { TaskDto } from "./TaskDto.js";
+import type { TextAnswerDto } from "./TextAnswerDto.js";
 
-interface ViewClientMessageDto {
-  type: 'view'
-  code: string
+export interface ClientMessageDto<T> {
+  type: string;
+  body: T;
 }
 
-interface SpectateClientMessageDto {
-  type: 'spectate'
-  code: string
-  playerName: string
+export interface ViewClientMessageDto {
+  code: string;
 }
 
-interface JoinClientMessageDto {
-  type: 'join'
-  playerName: string
+export interface SpectateClientMessageDto {
+  code: string;
+  playerName: string;
 }
 
-interface ReconnectClientMessageDto {
-  type: 'reconnect'
-  code: string
-  playerId: string
+export interface JoinClientMessageDto {
+  playerName: string;
 }
 
-interface LeaveClientMessageDto {
-  type: 'leave'
+export interface ReconnectClientMessageDto {
+  code: string;
+  playerId: string;
 }
 
-interface CloseLobbyClientMessageDto {
-  type: 'closeLobby'
+export interface LeaveClientMessageDto {}
+
+export interface CloseLobbyClientMessageDto {}
+
+export interface StartTaskClientMessageDto {
+  task: TaskDto;
 }
 
-interface StartTaskClientMessageDto {
-  type: 'startTask'
-  task: TaskDto
+export interface SubmitAnswerClientMessageDto {
+  answer: TextAnswerDto;
 }
 
-interface SubmitAnswerClientMessageDto {
-  type: 'submitAnswer'
-  answer: TextAnswerDto
+export interface VoteClientMessageDto {
+  answerId: string;
 }
 
-interface VoteClientMessageDto {
-  type: 'vote'
-  answerId: string
+export interface NextTaskClientMessageDto {
+  task: TaskDto;
 }
-
-interface NextTaskClientMessageDto {
-  type: 'nextTask'
-  task: TaskDto
-}
-
-export type ClientMessageDto =
-  | ViewClientMessageDto
-  | SpectateClientMessageDto
-  | JoinClientMessageDto
-  | ReconnectClientMessageDto
-  | LeaveClientMessageDto
-  | CloseLobbyClientMessageDto
-  | StartTaskClientMessageDto
-  | SubmitAnswerClientMessageDto
-  | VoteClientMessageDto
-  | NextTaskClientMessageDto

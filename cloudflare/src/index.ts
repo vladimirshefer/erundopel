@@ -1,10 +1,12 @@
 import {
   GameState,
   LobbyError,
+  LobbyControllerImpl,
   dispatchClientMessage,
   parseClientMessage,
   toClientError,
   type ClientSessionDto,
+  type ClientStateUpdateDto,
   type GameStateSnapshotDto,
 } from '@erundopel/core'
 
@@ -101,13 +103,14 @@ export class LobbyDurableObject implements DurableObject {
         return
       }
       const gameState = this.#requireGameState()
+      const controller = new LobbyControllerImpl((code, command) => {
+        this.#assertCode(code)
+        return gameState.execute(command)
+      })
       const result = dispatchClientMessage(
         parseClientMessage(event.data),
         this.#sockets.get(socket)?.session,
-        (code, command) => {
-          this.#assertCode(code)
-          return gameState.execute(command)
-        },
+        controller,
       )
       if (result.detach) this.#detach(socket)
       if (result.nextSession) this.#attach(socket, result.nextSession)
@@ -149,7 +152,7 @@ export class LobbyDurableObject implements DurableObject {
   }
 
   #broadcast(state: GameStateSnapshotDto): void {
-    const payload = JSON.stringify({ type: 'state', state })
+    const payload = JSON.stringify({ type: 'state', state } satisfies ClientStateUpdateDto)
     for (const socket of this.#sockets.keys()) {
       if (socket.readyState === WebSocket.OPEN) socket.send(payload)
     }
