@@ -4,8 +4,8 @@ import {
   dispatchClientMessage,
   parseClientMessage,
   toClientError,
-  type ClientSession,
-  type GameStateSnapshot,
+  type ClientSessionDto,
+  type GameStateSnapshotDto,
 } from '@erundopel/core'
 
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -17,7 +17,7 @@ export interface Env {
   LOBBY: DurableObjectNamespace
 }
 
-type SocketState = { session?: ClientSession; windowStartedAt: number; messagesInWindow: number }
+type SocketState = { session?: ClientSessionDto; windowStartedAt: number; messagesInWindow: number }
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -118,7 +118,7 @@ export class LobbyDurableObject implements DurableObject {
     }
   }
 
-  #attach(socket: WebSocket, session: ClientSession): void {
+  #attach(socket: WebSocket, session: ClientSessionDto): void {
     this.#detach(socket, false)
     const previousSocket = this.#socketByPlayer.get(session.playerId)
     const state = this.#sockets.get(socket)
@@ -148,7 +148,7 @@ export class LobbyDurableObject implements DurableObject {
     if (removeSocket) this.#sockets.delete(socket)
   }
 
-  #broadcast(state: GameStateSnapshot): void {
+  #broadcast(state: GameStateSnapshotDto): void {
     const payload = JSON.stringify({ type: 'state', state })
     for (const socket of this.#sockets.keys()) {
       if (socket.readyState === WebSocket.OPEN) socket.send(payload)

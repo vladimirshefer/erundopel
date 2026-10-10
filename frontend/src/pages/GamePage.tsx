@@ -1,14 +1,12 @@
 import { useContext, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { LanguageContext } from '../contexts/LanguageContext.tsx'
+import type { DictionaryContentDto } from '../dto/DictionaryContentDto.ts'
+import type { GameStateSnapshotDto } from '../dto/GameStateSnapshotDto.ts'
+import type { TaskDto } from '../dto/TaskDto.ts'
 import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
-import dictionaryRepository, {
-  type DictionaryContentDto,
-} from '../repositories/DictionaryRepository.ts'
-import lobbyRepository, {
-  type LobbyState,
-  type RoundTask,
-} from '../repositories/LobbyRepository.ts'
+import dictionaryRepository from '../repositories/DictionaryRepository.ts'
+import lobbyRepository from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
 const EXTRA_WRONG_ANSWERS_COUNT = 3
@@ -18,7 +16,7 @@ export default function GamePage() {
   usePageTitle()
   const navigate = useNavigate()
   const { code } = useParams()
-  const [lobby, setLobby] = useState<LobbyState>()
+  const [lobby, setLobby] = useState<GameStateSnapshotDto>()
   const [error, setError] = useState('')
   const [myAnswer, setMyAnswer] = useState('')
   const [language] = useContext(LanguageContext)
@@ -114,7 +112,7 @@ export default function GamePage() {
       setError(loc('Choose a word'))
       return
     }
-    const roundTask: RoundTask = {
+    const roundTask: TaskDto = {
       text: task.text,
       correctAnswer: task.correctAnswer,
       wrongAnswers: [...dictionaryEntries]

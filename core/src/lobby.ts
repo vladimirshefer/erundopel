@@ -1,61 +1,20 @@
+import type { AnswerOptionDto } from './dto/AnswerOptionDto.js'
+import type { CreateLobbyInputDto } from './dto/CreateLobbyInputDto.js'
+import type { GamePhaseDto, GameStateSnapshotDto } from './dto/GameStateSnapshotDto.js'
+import type { LobbyCommandDto } from './dto/LobbyCommandDto.js'
+import type { LobbyCommandResultDto } from './dto/LobbyCommandResultDto.js'
+import type { PlayerCredentialsDto } from './dto/PlayerCredentialsDto.js'
+import type { TaskDto } from './dto/TaskDto.js'
+import type { TextAnswerDto } from './dto/TextAnswerDto.js'
+
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const ROOM_CODE_LENGTH = 6
 const MAX_NAME_LENGTH = 32
 const MAX_PLAYERS = 100
 const MAX_ACTIVE_LOBBIES = 500
 
-export type PlayerCredentials = Readonly<{ playerId: string }>
-export type LobbyPlayer = Readonly<{
-  id: string
-  name: string
-  connected: boolean
-  answered: boolean
-  voted: boolean
-  score: number
-}>
-export type TextAnswer = Readonly<{ text: string }>
-export type GamePhase = 'lobby' | 'answering' | 'voting' | 'results'
-export type Task = Readonly<{
-  text: string
-  correctAnswer: TextAnswer
-  wrongAnswers: readonly TextAnswer[]
-}>
-export type PublicTask = Readonly<Pick<Task, 'text'>>
-export type AnswerOption = Readonly<{ id: string; text: string }>
-export type GameStateSnapshot = Readonly<{
-  code: string
-  ownerPlayerId: string
-  createdAt: number
-  revision: number
-  closed: boolean
-  phase: GamePhase
-  task?: PublicTask
-  answerOptions?: readonly AnswerOption[]
-  correctAnswerId?: string
-  players: readonly LobbyPlayer[]
-  spectators: readonly LobbyPlayer[]
-}>
-export type CreateLobbyInput = Readonly<{ playerName: string }>
-export type LobbyCommand =
-  | Readonly<{ type: 'view' }>
-  | Readonly<{ type: 'spectate'; playerName: string }>
-  | Readonly<{ type: 'join'; playerName: string; playerId?: string }>
-  | Readonly<{ type: 'reconnect'; playerId: string }>
-  | Readonly<{ type: 'disconnect'; playerId: string }>
-  | Readonly<{ type: 'leave'; playerId: string }>
-  | Readonly<{ type: 'close'; playerId: string }>
-  | Readonly<{ type: 'startTask'; playerId: string; task: Task }>
-  | Readonly<{ type: 'submitAnswer'; playerId: string; answer: TextAnswer }>
-  | Readonly<{ type: 'vote'; playerId: string; answerId: string }>
-  | Readonly<{ type: 'nextTask'; playerId: string; task: Task }>
-export type LobbyCommandResult = Readonly<{
-  state: GameStateSnapshot
-  credentials?: PlayerCredentials
-  evictedCode?: string
-}>
-
 type PlayerRecord = { id: string; name: string; connected: boolean; playing: boolean; score: number }
-type AnswerRecord = AnswerOption & { playerId?: string }
+type AnswerRecord = AnswerOptionDto & { playerId?: string }
 
 export class LobbyError extends Error {
   constructor(
@@ -85,8 +44,8 @@ export class GameState {
   readonly #votes = new Map<string, string>()
   #closed = false
   #revision = 0
-  #phase: GamePhase = 'lobby'
-  #task?: Task
+  #phase: GamePhaseDto = 'lobby'
+  #task?: TaskDto
   #answerOptions: AnswerRecord[] = []
 
   private constructor(
@@ -96,14 +55,14 @@ export class GameState {
     public lastActiveAt = createdAt,
   ) {}
 
-  static create(code: string, playerName: string, now = Date.now()): { gameState: GameState; credentials: PlayerCredentials } {
+  static create(code: string, playerName: string, now = Date.now()): { gameState: GameState; credentials: PlayerCredentialsDto } {
     const owner = createPlayer(playerName)
     const gameState = new GameState(code, owner.id, now)
     gameState.#players.set(owner.id, owner)
     return { gameState, credentials: credentialsFor(owner) }
   }
 
-  execute(command: LobbyCommand): LobbyCommandResult {
+  execute(command: LobbyCommandDto): LobbyCommandResultDto {
     switch (command.type) {
       case 'view': return this.#view()
       case 'spectate': return this.#spectate(command.playerName)
@@ -119,7 +78,7 @@ export class GameState {
     }
   }
 
-  snapshot(): GameStateSnapshot {
+  snapshot(): GameStateSnapshotDto {
     this.lastActiveAt = Math.max(Date.now(), this.lastActiveAt + 1)
     const people = [...this.#players.values()].map(({ id, name, connected, playing, score }) => ({
       id, name, connected, playing, score, answered: this.#answers.has(id), voted: this.#votes.has(id),
@@ -153,7 +112,7 @@ export class GameState {
     if (playerId !== this.ownerPlayerId) throw new LobbyError('FORBIDDEN', 'Only the lobby creator can do this.')
   }
 
-  #setConnected(playerId: string, connected: boolean): LobbyCommandResult {
+  #setConnected(playerId: string, connected: boolean): LobbyCommandResultDto {
     this.#assertOpen()
     const player = this.#findPlayer(playerId)
     if (player.connected !== connected) {
@@ -163,7 +122,7 @@ export class GameState {
     return { state: this.snapshot() }
   }
 
-  #join(playerName: string, playerId?: string): LobbyCommandResult {
+  #join(playerName: string, playerId?: string): LobbyCommandResultDto {
     this.#assertOpen()
     if (this.#phase !== 'lobby') throw new LobbyError('INVALID_GAME_PHASE', 'The game has already started.')
     const name = normalizeName(playerName)
@@ -180,12 +139,12 @@ export class GameState {
     return { state: this.snapshot(), credentials: credentialsFor(player) }
   }
 
-  #view(): LobbyCommandResult {
+  #view(): LobbyCommandResultDto {
     this.#assertOpen()
     return { state: this.snapshot() }
   }
 
-  #spectate(playerName: string): LobbyCommandResult {
+  #spectate(playerName: string): LobbyCommandResultDto {
     this.#assertOpen()
     if (this.#players.size >= MAX_PLAYERS) throw new LobbyError('LOBBY_FULL', 'The lobby already has the maximum of 100 players.')
     const player = createPlayer(playerName, false)
@@ -198,12 +157,12 @@ export class GameState {
     return { state: this.snapshot(), credentials: credentialsFor(player) }
   }
 
-  #reconnect(playerId: string): LobbyCommandResult {
+  #reconnect(playerId: string): LobbyCommandResultDto {
     this.#findPlayer(playerId)
     return this.#setConnected(playerId, true)
   }
 
-  #leave(playerId: string): LobbyCommandResult {
+  #leave(playerId: string): LobbyCommandResultDto {
     this.#assertOpen()
     this.#findPlayer(playerId)
     this.#players.delete(playerId)
@@ -213,7 +172,7 @@ export class GameState {
     return { state: this.snapshot() }
   }
 
-  #close(playerId: string): LobbyCommandResult {
+  #close(playerId: string): LobbyCommandResultDto {
     this.#assertOpen()
     this.#assertOwner(playerId)
     this.#closed = true
@@ -221,21 +180,21 @@ export class GameState {
     return { state: this.snapshot() }
   }
 
-  #startTask(playerId: string, task: Task): LobbyCommandResult {
+  #startTask(playerId: string, task: TaskDto): LobbyCommandResultDto {
     this.#assertOpen()
     this.#assertOwner(playerId)
     if (this.#phase !== 'lobby') throw new LobbyError('INVALID_GAME_PHASE', 'A task has already been started.')
     return this.#beginTask(task)
   }
 
-  #nextTask(playerId: string, task: Task): LobbyCommandResult {
+  #nextTask(playerId: string, task: TaskDto): LobbyCommandResultDto {
     this.#assertOpen()
     this.#assertOwner(playerId)
     if (this.#phase !== 'results') throw new LobbyError('INVALID_GAME_PHASE', 'Show the results first.')
     return this.#beginTask(task)
   }
 
-  #beginTask(task: Task): LobbyCommandResult {
+  #beginTask(task: TaskDto): LobbyCommandResultDto {
     if (!task || typeof task.text !== 'string' || !task.text.trim()) {
       throw new LobbyError('INVALID_ANSWER', 'Task text must not be empty.')
     }
@@ -252,7 +211,7 @@ export class GameState {
     return { state: this.snapshot() }
   }
 
-  #submitAnswer(playerId: string, answer: TextAnswer): LobbyCommandResult {
+  #submitAnswer(playerId: string, answer: TextAnswerDto): LobbyCommandResultDto {
     this.#assertOpen()
     if (this.#phase !== 'answering') throw new LobbyError('INVALID_GAME_PHASE', 'Answers are not accepted now.')
     this.#findPlayer(playerId)
@@ -273,7 +232,7 @@ export class GameState {
     this.#phase = 'voting'
   }
 
-  #vote(playerId: string, answerId: string): LobbyCommandResult {
+  #vote(playerId: string, answerId: string): LobbyCommandResultDto {
     this.#assertOpen()
     if (this.#phase !== 'voting') throw new LobbyError('INVALID_GAME_PHASE', 'Voting is not open now.')
     this.#findPlayer(playerId)
@@ -301,7 +260,7 @@ export class GameState {
 export class LobbyManager {
   readonly #lobbies = new Map<string, GameState>()
 
-  createLobby(input: CreateLobbyInput): LobbyCommandResult {
+  createLobby(input: CreateLobbyInputDto): LobbyCommandResultDto {
     let leastRecentlyActive: GameState | undefined
     if (this.#lobbies.size >= MAX_ACTIVE_LOBBIES) {
       for (const lobby of this.#lobbies.values()) {
@@ -318,11 +277,11 @@ export class LobbyManager {
     return { state: gameState.snapshot(), credentials, evictedCode }
   }
 
-  execute(code: string, command: LobbyCommand): LobbyCommandResult {
+  execute(code: string, command: LobbyCommandDto): LobbyCommandResultDto {
     return this.getGameState(code).execute(command)
   }
 
-  getSnapshot(code: string): GameStateSnapshot {
+  getSnapshot(code: string): GameStateSnapshotDto {
     return this.getGameState(code).snapshot()
   }
 
@@ -353,14 +312,14 @@ function createPlayer(name: string, playing = true): PlayerRecord {
   return { id: crypto.randomUUID(), name: normalizeName(name), connected: false, playing, score: 0 }
 }
 
-function credentialsFor(player: PlayerRecord): PlayerCredentials { return { playerId: player.id } }
+function credentialsFor(player: PlayerRecord): PlayerCredentialsDto { return { playerId: player.id } }
 
 function createRoomCode(): string {
   const randomValues = crypto.getRandomValues(new Uint8Array(ROOM_CODE_LENGTH))
   return [...randomValues].map((value) => ROOM_ALPHABET[value % ROOM_ALPHABET.length]).join('')
 }
 
-function normalizeAnswer(answer: TextAnswer): TextAnswer {
+function normalizeAnswer(answer: TextAnswerDto): TextAnswerDto {
   if (!answer || typeof answer.text !== 'string' || !answer.text.trim()) throw new LobbyError('INVALID_ANSWER', 'Answer text must not be empty.')
   return { text: answer.text.trim() }
 }

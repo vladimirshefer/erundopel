@@ -5,9 +5,9 @@ import {
   dispatchClientMessage,
   parseClientMessage,
   toClientError,
-  type ClientMessage,
-  type ClientSession,
-  type GameStateSnapshot,
+  type ClientMessageDto,
+  type ClientSessionDto,
+  type GameStateSnapshotDto,
 } from '@erundopel/core'
 import { WebSocketServer, WebSocket } from 'ws'
 
@@ -18,7 +18,7 @@ const clientsByLobby = new Map<string, Set<WebSocket>>()
 const socketByPlayer = new Map<string, WebSocket>()
 
 type SocketWithSession = WebSocket & {
-  session?: ClientSession
+  session?: ClientSessionDto
   viewCode?: string
   windowStartedAt: number
   messagesInWindow: number
@@ -89,7 +89,7 @@ server.listen(port, () => {
   console.log(`Erundopel backend listening on http://localhost:${port}`)
 })
 
-function handleMessage(socket: SocketWithSession, message: ClientMessage): void {
+function handleMessage(socket: SocketWithSession, message: ClientMessageDto): void {
   const result = dispatchClientMessage(message, socket.session, (code, command) =>
     lobbies.execute(code, command),
   )
@@ -100,7 +100,7 @@ function handleMessage(socket: SocketWithSession, message: ClientMessage): void 
   broadcast(result.state)
 }
 
-function attach(socket: SocketWithSession, session: ClientSession): void {
+function attach(socket: SocketWithSession, session: ClientSessionDto): void {
   detach(socket)
 
   const previousSocket = socketByPlayer.get(session.playerId)
@@ -149,7 +149,7 @@ function detach(socket: SocketWithSession): void {
   delete socket.viewCode
 }
 
-function broadcast(state: GameStateSnapshot): void {
+function broadcast(state: GameStateSnapshotDto): void {
   const payload = JSON.stringify({ type: 'state', state })
   for (const client of clientsByLobby.get(state.code) ?? []) {
     if (client.readyState === WebSocket.OPEN) client.send(payload)

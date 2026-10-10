@@ -1,20 +1,18 @@
-export type PlayerProfile = {
-  name: string
-}
+import type { PlayerProfileDto } from '../dto/PlayerProfileDto.ts'
 
 export interface PlayerProfileRepository {
-  getProfile(): PlayerProfile | null
-  saveProfile(profile: PlayerProfile): void
+  getProfile(): PlayerProfileDto | null
+  saveProfile(profile: PlayerProfileDto): void
   deleteProfile(): void
 }
 
 export class LocalStoragePlayerProfileRepository implements PlayerProfileRepository {
-  getProfile(): PlayerProfile | null {
+  getProfile(): PlayerProfileDto | null {
     const name = localStorage.getItem('erundopel.playerProfile.name')?.trim()
     return name ? { name } : null
   }
 
-  saveProfile(profile: PlayerProfile) {
+  saveProfile(profile: PlayerProfileDto) {
     localStorage.setItem('erundopel.playerProfile.name', profile.name)
   }
 

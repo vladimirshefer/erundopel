@@ -1,56 +1,21 @@
 import {
-  type GameStateSnapshot,
-  type LobbyCommand,
-  type LobbyCommandResult,
   LobbyError,
-  type PlayerCredentials,
-  type Task,
-  type TextAnswer,
 } from './lobby.js'
-
-export type ClientSession = Readonly<{
-  code: string
-  playerId: string
-}>
-
-export type ClientMessage =
-  | Readonly<{ type: 'view'; code: string }>
-  | Readonly<{ type: 'spectate'; code: string; playerName: string }>
-  | Readonly<{ type: 'join'; playerName: string }>
-  | Readonly<{ type: 'reconnect'; code: string; playerId: string }>
-  | Readonly<{ type: 'leave' }>
-  | Readonly<{ type: 'closeLobby' }>
-  | Readonly<{ type: 'startTask'; task: Task }>
-  | Readonly<{ type: 'submitAnswer'; answer: TextAnswer }>
-  | Readonly<{ type: 'vote'; answerId: string }>
-  | Readonly<{ type: 'nextTask'; task: Task }>
-
-export type ClientResponse =
-  | Readonly<{ type: 'viewed'; state: GameStateSnapshot }>
-  | Readonly<{ type: 'spectating'; state: GameStateSnapshot; credentials: PlayerCredentials }>
-  | Readonly<{ type: 'joined'; state: GameStateSnapshot; credentials: PlayerCredentials }>
-  | Readonly<{ type: 'resumed'; state: GameStateSnapshot }>
-  | Readonly<{ type: 'left' }>
-
-export type ClientDispatchResult = Readonly<{
-  state: GameStateSnapshot
-  response?: ClientResponse
-  nextSession?: ClientSession
-  viewCode?: string
-  detach?: true
-}>
-
-export type ClientErrorResponse = Readonly<{
-  type: 'error'
-  error: Readonly<{ code: string; message: string }>
-}>
+import type { ClientDispatchResultDto } from './dto/ClientDispatchResultDto.js'
+import type { ClientErrorResponseDto } from './dto/ClientErrorResponseDto.js'
+import type { ClientMessageDto } from './dto/ClientMessageDto.js'
+import type { ClientSessionDto } from './dto/ClientSessionDto.js'
+import type { LobbyCommandDto } from './dto/LobbyCommandDto.js'
+import type { LobbyCommandResultDto } from './dto/LobbyCommandResultDto.js'
+import type { PlayerCredentialsDto } from './dto/PlayerCredentialsDto.js'
+import type { TextAnswerDto } from './dto/TextAnswerDto.js'
 
 export type ExecuteLobbyCommand = (
   code: string,
-  command: LobbyCommand,
-) => LobbyCommandResult
+  command: LobbyCommandDto,
+) => LobbyCommandResultDto
 
-export function parseClientMessage(raw: string): ClientMessage {
+export function parseClientMessage(raw: string): ClientMessageDto {
   const message: unknown = JSON.parse(raw)
   const type = stringField(message, 'type')
 
@@ -100,10 +65,10 @@ export function parseClientMessage(raw: string): ClientMessage {
 }
 
 export function dispatchClientMessage(
-  message: ClientMessage,
-  session: ClientSession | undefined,
+  message: ClientMessageDto,
+  session: ClientSessionDto | undefined,
   execute: ExecuteLobbyCommand,
-): ClientDispatchResult {
+): ClientDispatchResultDto {
   switch (message.type) {
     case 'view': {
       assertNoSession(session)
@@ -182,7 +147,7 @@ export function dispatchClientMessage(
   }
 }
 
-export function toClientError(error: unknown): ClientErrorResponse {
+export function toClientError(error: unknown): ClientErrorResponseDto {
   if (error instanceof LobbyError) {
     return { type: 'error', error: { code: error.code, message: error.message } }
   }
@@ -192,16 +157,16 @@ export function toClientError(error: unknown): ClientErrorResponse {
   }
 }
 
-function assertNoSession(session: ClientSession | undefined): void {
+function assertNoSession(session: ClientSessionDto | undefined): void {
   if (session) throw new Error('Leave the current lobby before joining another one.')
 }
 
-function requireSession(session: ClientSession | undefined): ClientSession {
+function requireSession(session: ClientSessionDto | undefined): ClientSessionDto {
   if (!session) throw new LobbyError('PLAYER_NOT_FOUND', 'Join a lobby first.')
   return session
 }
 
-function requireCredentials(result: LobbyCommandResult): PlayerCredentials {
+function requireCredentials(result: LobbyCommandResultDto): PlayerCredentialsDto {
   if (!result.credentials) throw new Error('Join did not return player credentials.')
   return result.credentials
 }
@@ -213,7 +178,7 @@ function stringField(value: unknown, field: string): string {
   return value[field]
 }
 
-function textAnswerField(value: unknown, field: string): TextAnswer {
+function textAnswerField(value: unknown, field: string): TextAnswerDto {
   if (!isRecord(value) || !isRecord(value[field]) || typeof value[field].text !== 'string') {
     throw new Error(`${field}.text must be a string.`)
   }

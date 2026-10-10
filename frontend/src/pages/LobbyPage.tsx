@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Md5 } from 'ts-md5'
+import type { LobbyPlayerDto } from '../dto/LobbyPlayerDto.ts'
+import type { GameStateSnapshotDto } from '../dto/GameStateSnapshotDto.ts'
 import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
-import lobbyRepository, {
-  type LobbyPlayer,
-  type LobbyState,
-} from '../repositories/LobbyRepository.ts'
+import lobbyRepository from '../repositories/LobbyRepository.ts'
 import playerProfileRepository from '../repositories/PlayerProfileRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
@@ -15,7 +14,7 @@ export default function LobbyPage() {
   const { code } = useParams()
   usePageTitle(`${loc('Erundopel')} - ${code}`)
   const socket = useRef<WebSocket | null>(null)
-  const [lobby, setLobby] = useState<LobbyState>()
+  const [lobby, setLobby] = useState<GameStateSnapshotDto>()
   const [playerId, setPlayerId] = useState(() =>
     localStorage.getItem('erundopel.playerId'),
   )
@@ -178,8 +177,8 @@ export default function LobbyPage() {
     setIsLinkCopied(true)
   }
 
-  const players: LobbyPlayer[] = lobby?.players ?? []
-  const spectators: LobbyPlayer[] = lobby?.spectators ?? []
+  const players: LobbyPlayerDto[] = lobby?.players ?? []
+  const spectators: LobbyPlayerDto[] = lobby?.spectators ?? []
   const isOwner: Boolean = lobby?.ownerPlayerId === playerId
 
   return (
