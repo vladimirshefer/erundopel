@@ -15,7 +15,11 @@ export type LobbyPlayer = Readonly<{
 }>
 export type TextAnswer = Readonly<{ text: string }>
 export type GamePhase = 'lobby' | 'answering' | 'voting' | 'results'
-export type Task = Readonly<{ text: string; correctAnswer: TextAnswer }>
+export type Task = Readonly<{
+  text: string
+  correctAnswer: TextAnswer
+  wrongAnswers: readonly TextAnswer[]
+}>
 export type PublicTask = Readonly<Pick<Task, 'text'>>
 export type AnswerOption = Readonly<{ id: string; text: string }>
 export type GameStateSnapshot = Readonly<{
@@ -238,6 +242,7 @@ export class GameState {
     this.#task = {
       text: task.text.trim(),
       correctAnswer: normalizeAnswer(task.correctAnswer),
+      wrongAnswers: task.wrongAnswers.map(normalizeAnswer),
     }
     this.#answers.clear()
     this.#votes.clear()
@@ -260,7 +265,11 @@ export class GameState {
 
   #completeAnswering(): void {
     if (this.#phase !== 'answering' || ![...this.#players.values()].filter((player) => player.playing).every((player) => this.#answers.has(player.id))) return
-    this.#answerOptions = shuffle([{ id: 'correct', text: this.#task!.correctAnswer.text }, ...this.#answers.values()])
+    this.#answerOptions = shuffle([
+      { id: 'correct', text: this.#task!.correctAnswer.text },
+      ...this.#task!.wrongAnswers.map((answer, index) => ({ id: `wrong-${index}`, text: answer.text })),
+      ...this.#answers.values(),
+    ])
     this.#phase = 'voting'
   }
 

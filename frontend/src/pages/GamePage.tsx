@@ -11,6 +11,8 @@ import lobbyRepository, {
 } from '../repositories/LobbyRepository.ts'
 import { useLoc } from '../strings/loc.ts'
 
+const EXTRA_WRONG_ANSWERS_COUNT = 3
+
 export default function GamePage() {
   const loc = useLoc()
   usePageTitle()
@@ -26,7 +28,7 @@ export default function GamePage() {
   )
   const [dictionaryEntries, setDictionaryEntries] = useState<DictionaryContentDto>([])
   const [candidates, setCandidates] = useState<DictionaryContentDto>([])
-  const [selectedTask, setSelectedTask] = useState<RoundTask>()
+  const [selectedTask, setSelectedTask] = useState<DictionaryContentDto[number]>()
   const [customWord, setCustomWord] = useState('')
   const [customAnswer, setCustomAnswer] = useState('')
   const socket = useRef<WebSocket | null>(null)
@@ -106,16 +108,25 @@ export default function GamePage() {
         setError(loc('Enter a word and its meaning'))
         return
       }
-      task = { text: customWord.trim(), correctAnswer: { text: customAnswer.trim() } }
+      task = { id: 'custom', text: customWord.trim(), correctAnswer: { text: customAnswer.trim() } }
     }
     if (!task) {
       setError(loc('Choose a word'))
       return
     }
+    const roundTask: RoundTask = {
+      text: task.text,
+      correctAnswer: task.correctAnswer,
+      wrongAnswers: [...dictionaryEntries]
+        .filter((entry) => entry.id !== task.id)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, EXTRA_WRONG_ANSWERS_COUNT)
+        .map((entry) => entry.correctAnswer),
+    }
 
     setError('')
-    if (lobby?.phase === 'lobby') lobbyRepository.startGame(socket.current, task)
-    if (lobby?.phase === 'results') lobbyRepository.nextRound(socket.current, task)
+    if (lobby?.phase === 'lobby') lobbyRepository.startGame(socket.current, roundTask)
+    if (lobby?.phase === 'results') lobbyRepository.nextRound(socket.current, roundTask)
   }
 
   return (
@@ -216,7 +227,7 @@ export default function GamePage() {
                 className={`min-h-32 border-4 border-zinc-950 p-4 text-left text-lg font-black text-zinc-950 shadow-[4px_4px_0_0_#18181b] transition hover:-translate-y-1 ${selectedTask?.text === candidate.text ? 'bg-amber-300' : 'bg-white'}`}
                 key={candidate.id}
                 onClick={() => {
-                  setSelectedTask({ text: candidate.text, correctAnswer: candidate.correctAnswer })
+                  setSelectedTask(candidate)
                   setCustomWord('')
                   setCustomAnswer('')
                 }}

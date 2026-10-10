@@ -8,7 +8,11 @@ export type LobbyPlayer = {
 }
 
 export type AnswerOption = { id: string; text: string }
-export type RoundTask = { text: string; correctAnswer: { text: string } }
+export type RoundTask = {
+  text: string
+  correctAnswer: { text: string }
+  wrongAnswers: { text: string }[]
+}
 
 export type LobbyState = {
   code: string

@@ -40,7 +40,7 @@ test('uses the task supplied by the host', () => {
   const started = manager.execute(lobby.state.code, {
     type: 'startTask',
     playerId: owner.playerId,
-    task: { text: 'Backpfeifengesicht', correctAnswer: { text: 'ein Gesicht, das nach einer Ohrfeige verlangt' } },
+    task: { text: 'Backpfeifengesicht', correctAnswer: { text: 'ein Gesicht, das nach einer Ohrfeige verlangt' }, wrongAnswers: [] },
   })
   assert.equal(started.state.task?.text, 'Backpfeifengesicht')
 })
@@ -104,7 +104,7 @@ test('does not wait for spectators to answer', () => {
   manager.execute(lobby.state.code, {
     type: 'startTask',
     playerId: owner.playerId,
-    task: { text: 'Слово', correctAnswer: { text: 'Значение' } },
+    task: { text: 'Слово', correctAnswer: { text: 'Значение' }, wrongAnswers: [] },
   })
 
   const completed = manager.execute(lobby.state.code, {
@@ -172,7 +172,7 @@ test('starts a task and completes after every current player answers once', () =
   const started = manager.execute(lobby.state.code, {
     type: 'startTask',
     playerId: owner.playerId,
-    task: { text: 'Слово', correctAnswer: { text: 'Значение' } },
+    task: { text: 'Слово', correctAnswer: { text: 'Значение' }, wrongAnswers: [] },
   })
   assert.equal(started.state.phase, 'answering')
   assert.ok(started.state.task?.text)
@@ -204,7 +204,7 @@ test('does not allow a second answer from the same player', () => {
   manager.execute(lobby.state.code, {
     type: 'startTask',
     playerId: owner.playerId,
-    task: { text: 'Слово', correctAnswer: { text: 'Значение' } },
+    task: { text: 'Слово', correctAnswer: { text: 'Значение' }, wrongAnswers: [] },
   })
   manager.execute(lobby.state.code, {
     type: 'submitAnswer',
@@ -231,7 +231,7 @@ test('maps WebSocket messages to core commands', () => {
 
   const session = { code: lobby.state.code, playerId: owner.playerId }
   const started = dispatchClientMessage(
-    parseClientMessage('{"type":"startTask","task":{"text":"Слово","correctAnswer":{"text":"Значение"}}}'),
+    parseClientMessage('{"type":"startTask","task":{"text":"Слово","correctAnswer":{"text":"Значение"},"wrongAnswers":[{"text":"Ложное значение"}]}}'),
     session,
     manager.execute.bind(manager),
   )
@@ -243,6 +243,7 @@ test('maps WebSocket messages to core commands', () => {
     manager.execute.bind(manager),
   )
   assert.equal(submitted.state.phase, 'voting')
+  assert.ok(submitted.state.answerOptions?.some((answer) => answer.text === 'Ложное значение'))
 })
 
 test('runs a round from answers to scores', () => {
@@ -255,7 +256,7 @@ test('runs a round from answers to scores', () => {
   manager.execute(lobby.state.code, {
     type: 'startTask',
     playerId: owner.playerId,
-    task: { text: 'Слово', correctAnswer: { text: 'Значение' } },
+    task: { text: 'Слово', correctAnswer: { text: 'Значение' }, wrongAnswers: [] },
   })
   manager.execute(lobby.state.code, {
     type: 'submitAnswer',

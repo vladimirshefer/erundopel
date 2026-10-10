@@ -78,11 +78,15 @@ export function parseClientMessage(raw: string): ClientMessage {
       if (!isRecord(message.task.correctAnswer) || typeof message.task.correctAnswer.text !== 'string') {
         throw new Error('task.correctAnswer.text must be a string.')
       }
+      if (!Array.isArray(message.task.wrongAnswers) || !message.task.wrongAnswers.every((answer) => isRecord(answer) && typeof answer.text === 'string')) {
+        throw new Error('task.wrongAnswers must be an array of text answers.')
+      }
       return {
         type,
         task: {
           text: message.task.text,
           correctAnswer: { text: message.task.correctAnswer.text },
+          wrongAnswers: message.task.wrongAnswers.map((answer) => ({ text: answer.text })),
         },
       }
     }
