@@ -10,6 +10,7 @@ export {
   type LobbyController,
 } from "./controllers/LobbyController.js";
 export type { AnswerOptionDto } from "./dto/AnswerOptionDto.js";
+export type { VoteDto } from "./dto/VoteDto.js";
 export type { ClientDispatchResultDto } from "./dto/ClientDispatchResultDto.js";
 export type { ClientErrorResponseDto } from "./dto/ClientErrorResponseDto.js";
 export type { ClientMessageDto } from "./dto/ClientMessageDto.js";

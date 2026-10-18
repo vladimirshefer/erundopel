@@ -393,6 +393,7 @@ test("runs a round from answers to scores", () => {
       (answer) => answer.text === "Вариант Владимира",
     )?.id ?? "";
   assert.equal(voting.state.phase, "voting");
+  assert.equal(voting.state.votes, undefined);
   assert.ok(correctAnswerId);
   assert.ok(ownerAnswerId);
 
@@ -407,6 +408,13 @@ test("runs a round from answers to scores", () => {
     answerId: ownerAnswerId,
   });
   assert.equal(results.state.phase, "results");
+  assert.deepEqual(
+    results.state.votes,
+    [
+      { playerId: owner.playerId, answerId: correctAnswerId },
+      { playerId: anna.playerId, answerId: ownerAnswerId },
+    ],
+  );
   assert.equal(
     results.state.players.find((player) => player.id === owner.playerId)?.score,
     3,

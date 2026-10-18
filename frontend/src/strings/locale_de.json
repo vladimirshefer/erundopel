@@ -68,5 +68,13 @@
   "Correct meaning": "Richtige Bedeutung",
   "Start next round": "Nächste Runde starten",
   "Could not load dictionary": "Wörterbuch konnte nicht geladen werden",
-  "Enter a word and its meaning": "Gib ein Wort und seine Bedeutung ein"
+  "Enter a word and its meaning": "Gib ein Wort und seine Bedeutung ein",
+  "Answer": "Antwort",
+  "Answer board": "Antworttafel",
+  "Answer in": "Antwort abgegeben",
+  "No votes": "Keine Stimmen",
+  "Still choosing": "Entscheidet noch",
+  "Still thinking": "Überlegt noch",
+  "Vote in": "Stimme abgegeben",
+  "Voting board": "Abstimmungstafel"
 }

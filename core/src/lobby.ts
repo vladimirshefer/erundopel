@@ -93,6 +93,9 @@ export class GameState {
       task: this.#task && { text: this.#task.text },
       answerOptions: this.#answerOptions.map(({ id, text }) => ({ id, text })),
       correctAnswerId: this.#phase === 'results' ? 'correct' : undefined,
+      votes: this.#phase === 'results'
+        ? [...this.#votes].map(([playerId, answerId]) => ({ playerId, answerId }))
+        : undefined,
       players: people.filter((player) => player.playing).map(({ playing: _, ...player }) => player),
       spectators: people.filter((player) => !player.playing).map(({ playing: _, ...player }) => player),
     }

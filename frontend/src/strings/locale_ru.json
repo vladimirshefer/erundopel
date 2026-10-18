@@ -70,5 +70,13 @@
   "Correct meaning": "Правильное значение",
   "Start next round": "Начать следующий раунд",
   "Could not load dictionary": "Не удалось загрузить словарь",
-  "Enter a word and its meaning": "Введите слово и его значение"
+  "Enter a word and its meaning": "Введите слово и его значение",
+  "Answer": "Ответ",
+  "Answer board": "Табло ответов",
+  "Answer in": "Ответ готов",
+  "No votes": "Нет голосов",
+  "Still choosing": "Ещё выбирает",
+  "Still thinking": "Ещё думает",
+  "Vote in": "Голос отдан",
+  "Voting board": "Табло голосования"
 }
