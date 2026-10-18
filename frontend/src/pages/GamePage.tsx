@@ -136,7 +136,7 @@ export default function GamePage() {
       <section className="mt-5 flex flex-wrap gap-2" aria-label={loc('Players')}>
         {lobby.players.map((item) => (
           <div className="flex items-center gap-2 border-2 border-zinc-950 bg-amber-100 px-2 py-1.5" key={item.id}>
-            <img alt="" className="size-7" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=56`} />
+            <img alt="" className="size-7 rounded-full" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=56`} />
             <span className="font-bold text-zinc-950">{item.name}</span>
             <span className="text-sm font-black text-zinc-600">{item.score}</span>
           </div>
@@ -172,7 +172,7 @@ export default function GamePage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {lobby.players.map((item) => (
                 <article className={`flex items-center gap-3 rounded-2xl border border-zinc-200 p-3 shadow-sm ${item.answered ? 'bg-amber-300' : 'bg-white'}`} key={item.id}>
-                  <img alt="" className="size-12" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=96`} />
+                  <img alt="" className="size-12 rounded-full" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=96`} />
                   <div>
                     <p className="font-black text-zinc-950">{item.name}</p>
                     <p className="mt-0.5 text-sm font-bold text-zinc-700">{item.answered ? loc('Answer in') : loc('Still thinking')}</p>
@@ -203,7 +203,7 @@ export default function GamePage() {
                     required
                     disabled={answer.text === myAnswer}
                   />
-                  <span className="flex min-h-40 flex-col justify-between border-4 border-zinc-950 bg-white p-5 text-zinc-950 shadow-[6px_6px_0_0_#18181b] transition hover:-translate-y-1 hover:bg-amber-100 peer-checked:bg-amber-300 peer-disabled:cursor-not-allowed peer-disabled:border-zinc-300 peer-disabled:bg-zinc-100 peer-disabled:text-zinc-400 peer-disabled:shadow-none">
+                  <span className="flex min-h-40 flex-col justify-between rounded-md border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm transition hover:-translate-y-1 hover:bg-amber-100 peer-checked:bg-amber-300 peer-disabled:cursor-not-allowed peer-disabled:border-zinc-300 peer-disabled:bg-zinc-100 peer-disabled:text-zinc-400 peer-disabled:shadow-none">
                     <span className="text-xs font-black tracking-widest text-zinc-500">{loc('Answer')}</span>
                     <span className="mt-5 text-xl font-black leading-snug">{answer.text}</span>
                   </span>
@@ -221,7 +221,7 @@ export default function GamePage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {lobby.players.map((item) => (
                 <article className={`flex items-center gap-3 rounded-2xl border border-zinc-200 p-3 shadow-sm ${item.voted ? 'bg-amber-300' : 'bg-white'}`} key={item.id}>
-                  <img alt="" className="size-12" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=96`} />
+                  <img alt="" className="size-12 rounded-full" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=96`} />
                   <div>
                     <p className="font-black text-zinc-950">{item.name}</p>
                     <p className="mt-0.5 text-sm font-bold text-zinc-700">{item.voted ? loc('Vote in') : loc('Still choosing')}</p>
@@ -239,7 +239,7 @@ export default function GamePage() {
           <p className="mt-2 font-bold text-zinc-600">{lobby.task?.text}</p>
           <section className="mt-5 grid gap-4 sm:grid-cols-2">
             {lobby.answerOptions?.map((answer) => (
-              <article className={`flex min-h-48 flex-col justify-between border-4 border-zinc-950 p-5 shadow-[6px_6px_0_0_#18181b] ${answer.id === lobby.correctAnswerId ? 'bg-amber-300' : 'bg-white'}`} key={answer.id}>
+              <article className={`flex min-h-48 flex-col justify-between rounded-md border border-zinc-200 p-5 shadow-sm ${answer.id === lobby.correctAnswerId ? 'bg-amber-300' : 'bg-white'}`} key={answer.id}>
                 <div>
                   <p className="text-xs font-black tracking-widest text-zinc-600">{answer.id === lobby.correctAnswerId ? loc('Correct answer') : loc('Answer')}</p>
                   <p className="mt-4 text-xl font-black leading-snug text-zinc-950">{answer.text}</p>
@@ -247,7 +247,7 @@ export default function GamePage() {
                 <div className="mt-6 flex items-center gap-2">
                   {lobby.votes?.filter((vote) => vote.answerId === answer.id).map((vote) => {
                     const voter = lobby.players.find((item) => item.id === vote.playerId)
-                    return voter && <img alt={voter.name} className="size-10" key={voter.id} src={`https://gravatar.com/avatar/${Md5.hashStr(voter.name)}?d=robohash&s=80`} title={voter.name} />
+                    return voter && <img alt={voter.name} className="size-10 rounded-full" key={voter.id} src={`https://gravatar.com/avatar/${Md5.hashStr(voter.name)}?d=robohash&s=80`} title={voter.name} />
                   })}
                   {!lobby.votes?.some((vote) => vote.answerId === answer.id) && <p className="text-sm font-bold text-zinc-500">{loc('No votes')}</p>}
                 </div>
@@ -278,7 +278,7 @@ export default function GamePage() {
           <div className="mt-4 grid grid-cols-2 gap-3">
             {candidates.map((candidate) => (
               <button
-                className={`min-h-32 border-4 border-zinc-950 p-4 text-left text-lg font-black text-zinc-950 shadow-[4px_4px_0_0_#18181b] transition hover:-translate-y-1 ${selectedTask?.text === candidate.text ? 'bg-amber-300' : 'bg-white'}`}
+                className={`min-h-32 rounded-md border border-zinc-200 p-4 text-left text-lg font-black text-zinc-950 shadow-sm transition hover:-translate-y-1 ${selectedTask?.text === candidate.text ? 'bg-amber-300' : 'bg-white'}`}
                 key={candidate.id}
                 onClick={() => {
                   setSelectedTask(candidate)
