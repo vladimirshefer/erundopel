@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState, type FormEvent } from 'react'
+import { FiAward, FiRefreshCw } from 'react-icons/fi'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Md5 } from 'ts-md5'
 import { LanguageContext } from '../contexts/LanguageContext.tsx'
@@ -30,6 +31,7 @@ export default function GamePage() {
   const [selectedTask, setSelectedTask] = useState<DictionaryContentDto[number]>()
   const [customWord, setCustomWord] = useState('')
   const [customAnswer, setCustomAnswer] = useState('')
+  const [wordTab, setWordTab] = useState<'suggested' | 'custom'>('suggested')
   const socket = useRef<WebSocket | null>(null)
   const playerId = localStorage.getItem('erundopel.playerId')
   const isOwner = lobby?.ownerPlayerId === playerId
@@ -81,6 +83,10 @@ export default function GamePage() {
       </main>
     )
   const player = lobby.players.find((item) => item.id === playerId)
+  const sortedPlayers = [...lobby.players].sort((a, b) => b.score - a.score)
+  const isWordValid = wordTab === 'custom'
+    ? customWord.trim() !== '' && customAnswer.trim() !== ''
+    : !!selectedTask
 
   function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -101,13 +107,15 @@ export default function GamePage() {
     event.preventDefault()
     if (!socket.current) return
 
-    let task = selectedTask
-    if (customWord.trim() || customAnswer.trim()) {
+    let task: DictionaryContentDto[number] | undefined
+    if (wordTab === 'custom') {
       if (!customWord.trim() || !customAnswer.trim()) {
         setError(loc('Enter a word and its meaning'))
         return
       }
       task = { id: 'custom', text: customWord.trim(), correctAnswer: { text: customAnswer.trim() } }
+    } else {
+      task = selectedTask
     }
     if (!task) {
       setError(loc('Choose a word'))
@@ -134,20 +142,23 @@ export default function GamePage() {
         {loc('Game')} {lobby.code}
       </h1>
       <section className="mt-5 flex flex-wrap gap-2" aria-label={loc('Players')}>
-        {lobby.players.map((item) => (
-          <div className="flex items-center gap-2 border-2 border-zinc-950 bg-amber-100 px-2 py-1.5" key={item.id}>
+        {sortedPlayers.map((item) => (
+          <div
+            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 ${
+              item.id === playerId ? 'border-zinc-950 bg-amber-200' : 'border-zinc-200 bg-amber-100'
+            }`}
+            key={item.id}
+          >
             <img alt="" className="size-7 rounded-full" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=56`} />
             <span className="font-bold text-zinc-950">{item.name}</span>
+            {item.id === lobby.ownerPlayerId && <FiAward aria-label={loc('Host')} className="text-amber-600" title={loc('Host')} />}
             <span className="text-sm font-black text-zinc-600">{item.score}</span>
           </div>
         ))}
       </section>
 
-      {lobby.phase === 'lobby' && (
-        <>
-          <p className="mt-8 text-zinc-600">{loc('Send this game code to friends and wait for them here.')}</p>
-          {!isOwner && <p className="mt-8 text-zinc-600">{loc('Waiting for the host to start.')}</p>}
-        </>
+      {lobby.phase === 'lobby' && !isOwner && (
+        <p className="mt-8 text-zinc-600">{loc('Waiting for the host to start.')}</p>
       )}
 
       {lobby.phase === 'answering' && (
@@ -156,18 +167,26 @@ export default function GamePage() {
           {player?.answered ? (
             <p className="mt-4 border-l-4 border-amber-400 bg-amber-100 px-4 py-3 font-bold text-zinc-800">{loc('Answer sent. Waiting for other players.')}</p>
           ) : (
-            <form className="mt-5 border-4 border-zinc-950 bg-amber-300 p-5 shadow-[8px_8px_0_0_#18181b]" onSubmit={submitAnswer}>
+            <form className="mt-5 rounded-3xl border border-zinc-200 bg-amber-300 p-5 shadow-lg" onSubmit={submitAnswer}>
               <label className="flex flex-col gap-1.5 text-sm font-semibold text-zinc-800">
                 {loc('Your answer')}
-                <input className="border-2 border-zinc-950 bg-white px-3 py-2.5 text-base outline-none focus:ring-4 focus:ring-white" name="answer" autoFocus />
+                <input className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-base outline-none focus:ring-4 focus:ring-white" name="answer" autoFocus />
               </label>
-              <button className="mt-4 bg-zinc-950 px-4 py-3 font-black text-white transition hover:-translate-y-0.5 hover:bg-zinc-800">{loc('Send answer')}</button>
+              <button className="mt-4 rounded-xl bg-zinc-950 px-4 py-3 font-black text-white transition hover:-translate-y-0.5 hover:bg-zinc-800">{loc('Send answer')}</button>
             </form>
           )}
           <section className="mt-9">
-            <div className="flex items-baseline justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <h3 className="text-xl font-black text-zinc-950">{loc('Answer board')}</h3>
-              <p className="text-sm font-bold text-zinc-600">{lobby.players.filter((item) => item.answered).length}/{lobby.players.length}</p>
+              <div className="flex items-center gap-3">
+                <div className="h-2 w-28 overflow-hidden rounded-full bg-zinc-100">
+                  <div
+                    className="h-full rounded-full bg-amber-400 transition-all"
+                    style={{ width: `${(lobby.players.filter((item) => item.answered).length / lobby.players.length) * 100}%` }}
+                  />
+                </div>
+                <p className="text-sm font-bold text-zinc-600">{lobby.players.filter((item) => item.answered).length}/{lobby.players.length}</p>
+              </div>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {lobby.players.map((item) => (
@@ -203,20 +222,28 @@ export default function GamePage() {
                     required
                     disabled={answer.text === myAnswer}
                   />
-                  <span className="flex min-h-40 flex-col justify-between rounded-md border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm transition hover:-translate-y-1 hover:bg-amber-100 peer-checked:bg-amber-300 peer-disabled:cursor-not-allowed peer-disabled:border-zinc-300 peer-disabled:bg-zinc-100 peer-disabled:text-zinc-400 peer-disabled:shadow-none">
+                  <span className="flex min-h-40 flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm transition hover:-translate-y-1 hover:bg-amber-100 peer-checked:bg-amber-300 peer-disabled:cursor-not-allowed peer-disabled:border-zinc-300 peer-disabled:bg-zinc-100 peer-disabled:text-zinc-400 peer-disabled:shadow-none">
                     <span className="text-xs font-black tracking-widest text-zinc-500">{loc('Answer')}</span>
                     <span className="mt-5 text-xl font-black leading-snug">{answer.text}</span>
                   </span>
                 </label>
               ))}
               </div>
-              <button className="mt-6 w-full bg-amber-300 px-4 py-3 font-black text-zinc-950 transition hover:-translate-y-0.5 hover:bg-amber-400">{loc('Vote')}</button>
+              <button className="mt-6 w-full rounded-xl bg-amber-300 px-4 py-3 font-black text-zinc-950 transition hover:-translate-y-0.5 hover:bg-amber-400">{loc('Vote')}</button>
             </form>
           )}
           <section className="mt-9">
-            <div className="flex items-baseline justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <h3 className="text-xl font-black text-zinc-950">{loc('Voting board')}</h3>
-              <p className="text-sm font-bold text-zinc-600">{lobby.players.filter((item) => item.voted).length}/{lobby.players.length}</p>
+              <div className="flex items-center gap-3">
+                <div className="h-2 w-28 overflow-hidden rounded-full bg-zinc-100">
+                  <div
+                    className="h-full rounded-full bg-amber-400 transition-all"
+                    style={{ width: `${(lobby.players.filter((item) => item.voted).length / lobby.players.length) * 100}%` }}
+                  />
+                </div>
+                <p className="text-sm font-bold text-zinc-600">{lobby.players.filter((item) => item.voted).length}/{lobby.players.length}</p>
+              </div>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {lobby.players.map((item) => (
@@ -239,7 +266,7 @@ export default function GamePage() {
           <p className="mt-2 font-bold text-zinc-600">{lobby.task?.text}</p>
           <section className="mt-5 grid gap-4 sm:grid-cols-2">
             {lobby.answerOptions?.map((answer) => (
-              <article className={`flex min-h-48 flex-col justify-between rounded-md border border-zinc-200 p-5 shadow-sm ${answer.id === lobby.correctAnswerId ? 'bg-amber-300' : 'bg-white'}`} key={answer.id}>
+              <article className={`flex min-h-48 flex-col justify-between rounded-2xl border border-zinc-200 p-5 shadow-sm ${answer.id === lobby.correctAnswerId ? 'bg-amber-300' : 'bg-white'}`} key={answer.id}>
                 <div>
                   <p className="text-xs font-black tracking-widest text-zinc-600">{answer.id === lobby.correctAnswerId ? loc('Correct answer') : loc('Answer')}</p>
                   <p className="mt-4 text-xl font-black leading-snug text-zinc-950">{answer.text}</p>
@@ -261,65 +288,89 @@ export default function GamePage() {
       )}
 
       {isOwner && (lobby.phase === 'lobby' || lobby.phase === 'results') && (
-        <form className="mt-8 border-4 border-zinc-950 bg-white p-5" onSubmit={startRound}>
+        <form className="mt-6 border-t border-zinc-200 pt-6" onSubmit={startRound}>
           <h2 className="text-2xl font-black text-zinc-950">{loc('Choose a word')}</h2>
-          <label className="mt-5 flex flex-col gap-1.5 text-sm font-bold text-zinc-800">
-            {loc('Dictionary')}
-            <select
-              className="border-2 border-zinc-950 bg-white px-3 py-2.5 outline-none focus:ring-4 focus:ring-amber-300"
-              onChange={(event) => setDictionaryId(event.target.value)}
-              value={dictionaryId}
-            >
-              {dictionaries.map((dictionary) => (
-                <option key={dictionary.id} value={dictionary.id}>{dictionary.name}</option>
-              ))}
-            </select>
-          </label>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {candidates.map((candidate) => (
+          {wordTab === 'suggested' ? (
+            <>
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {candidates.map((candidate) => (
+                  <button
+                    className={`min-h-28 rounded-2xl border border-zinc-200 p-4 text-left text-lg font-black text-zinc-950 shadow-sm transition hover:-translate-y-1 ${selectedTask?.text === candidate.text ? 'bg-amber-300' : 'bg-white'}`}
+                    key={candidate.id}
+                    onClick={() => setSelectedTask(candidate)}
+                    type="button"
+                  >
+                    {candidate.text}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-100"
+                  disabled={dictionaryEntries.length === 0}
+                  onClick={() => {
+                    setCandidates([...dictionaryEntries].sort(() => Math.random() - 0.5).slice(0, 4))
+                    setSelectedTask(undefined)
+                  }}
+                  type="button"
+                >
+                  <FiRefreshCw aria-hidden="true" />
+                  {loc('Other words')}
+                </button>
+                <select
+                  className="rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-bold outline-none focus:ring-4 focus:ring-amber-300"
+                  onChange={(event) => setDictionaryId(event.target.value)}
+                  value={dictionaryId}
+                >
+                  {dictionaries.map((dictionary) => (
+                    <option key={dictionary.id} value={dictionary.id}>{dictionary.name}</option>
+                  ))}
+                </select>
+                <button
+                  className="text-sm font-bold text-zinc-500 underline decoration-dotted underline-offset-2 hover:text-zinc-800"
+                  onClick={() => setWordTab('custom')}
+                  type="button"
+                >
+                  {loc('Write your own')}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="mt-5 flex flex-col gap-1.5 text-sm font-bold text-zinc-800">
+                {loc('Word')}
+                <input
+                  className="rounded-xl border border-zinc-200 px-3 py-2.5 outline-none focus:ring-4 focus:ring-amber-300"
+                  onChange={(event) => setCustomWord(event.target.value)}
+                  value={customWord}
+                />
+              </label>
+              <label className="mt-3 flex flex-col gap-1.5 text-sm font-bold text-zinc-800">
+                {loc('Correct meaning')}
+                <input
+                  className="rounded-xl border border-zinc-200 px-3 py-2.5 outline-none focus:ring-4 focus:ring-amber-300"
+                  onChange={(event) => setCustomAnswer(event.target.value)}
+                  value={customAnswer}
+                />
+              </label>
               <button
-                className={`min-h-32 rounded-md border border-zinc-200 p-4 text-left text-lg font-black text-zinc-950 shadow-sm transition hover:-translate-y-1 ${selectedTask?.text === candidate.text ? 'bg-amber-300' : 'bg-white'}`}
-                key={candidate.id}
-                onClick={() => {
-                  setSelectedTask(candidate)
-                  setCustomWord('')
-                  setCustomAnswer('')
-                }}
+                className="mt-3 text-sm font-bold text-zinc-500 underline decoration-dotted underline-offset-2 hover:text-zinc-800"
+                onClick={() => setWordTab('suggested')}
                 type="button"
               >
-                {candidate.text}
+                {loc('Suggested')}
               </button>
-            ))}
-          </div>
+            </>
+          )}
           <button
-            className="mt-4 border-2 border-zinc-950 bg-white px-4 py-2 font-bold text-zinc-950 hover:bg-zinc-100"
-            disabled={dictionaryEntries.length === 0}
-            onClick={() => {
-              setCandidates([...dictionaryEntries].sort(() => Math.random() - 0.5).slice(0, 4))
-              setSelectedTask(undefined)
-            }}
-            type="button"
+            className={`mt-6 w-full rounded-xl px-5 py-3 text-lg font-black transition ${
+              isWordValid
+                ? 'bg-amber-300 text-zinc-950 hover:-translate-y-0.5 hover:bg-amber-400'
+                : 'cursor-not-allowed bg-zinc-200 text-zinc-400'
+            }`}
+            disabled={!isWordValid}
+            type="submit"
           >
-            {loc('Other words')}
-          </button>
-          <p className="mt-8 text-sm font-bold uppercase tracking-widest text-zinc-500">{loc('Or write your own')}</p>
-          <label className="mt-3 flex flex-col gap-1.5 text-sm font-bold text-zinc-800">
-            {loc('Word')}
-            <input
-              className="border-2 border-zinc-950 px-3 py-2.5 outline-none focus:ring-4 focus:ring-amber-300"
-              onChange={(event) => setCustomWord(event.target.value)}
-              value={customWord}
-            />
-          </label>
-          <label className="mt-3 flex flex-col gap-1.5 text-sm font-bold text-zinc-800">
-            {loc('Correct meaning')}
-            <input
-              className="border-2 border-zinc-950 px-3 py-2.5 outline-none focus:ring-4 focus:ring-amber-300"
-              onChange={(event) => setCustomAnswer(event.target.value)}
-              value={customAnswer}
-            />
-          </label>
-          <button className="mt-6 w-full bg-amber-300 px-5 py-3 text-lg font-black text-zinc-950 hover:bg-amber-400" type="submit">
             {lobby.phase === 'lobby' ? loc('Start game') : loc('Start next round')}
           </button>
         </form>

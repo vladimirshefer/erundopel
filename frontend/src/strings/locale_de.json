@@ -34,6 +34,7 @@
   "Language": "Sprache",
   "Link copied": "Link kopiert",
   "Loading lobby": "Lobby wird geladen",
+  "Lobby": "Lobby",
   "Name": "Name",
   "Next round": "Nächste Runde",
   "Opens on another website": "Öffnet eine andere Website",
@@ -53,6 +54,7 @@
   "Spectator": "Zuschauer",
   "Spectators": "Zuschauer",
   "Start game": "Spiel starten",
+  "Suggested": "Vorschläge",
   "The Game": "Das Spiel",
   "The host creates a game and sends its code to friends.": "Der Gastgeber erstellt ein Spiel und schickt den Code an Freunde.",
   "Vote": "Abstimmen",
@@ -68,7 +70,6 @@
   "Choose a word": "Wort auswählen",
   "Dictionary": "Wörterbuch",
   "Other words": "Andere Wörter",
-  "Or write your own": "Oder eigenes Wort eingeben",
   "Word": "Wort",
   "Correct meaning": "Richtige Bedeutung",
   "Start next round": "Nächste Runde starten",
@@ -81,5 +82,8 @@
   "Still choosing": "Entscheidet noch",
   "Still thinking": "Überlegt noch",
   "Vote in": "Stimme abgegeben",
-  "Voting board": "Abstimmungstafel"
+  "Voting board": "Abstimmungstafel",
+  "Answering": "Antworten",
+  "Voting": "Abstimmen",
+  "Write your own": "Eigenes Wort eingeben"
 }

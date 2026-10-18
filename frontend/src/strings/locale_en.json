@@ -34,6 +34,7 @@
   "Language": "Language",
   "Link copied": "Link copied",
   "Loading lobby": "Loading lobby",
+  "Lobby": "Lobby",
   "Name": "Name",
   "Next round": "Next round",
   "Opens on another website": "Opens on another website",
@@ -53,6 +54,7 @@
   "Spectator": "Spectator",
   "Spectators": "Spectators",
   "Start game": "Start game",
+  "Suggested": "Suggested",
   "The Game": "The Game",
   "The host creates a game and sends its code to friends.": "The host creates a game and sends its code to friends.",
   "Vote": "Vote",
@@ -68,7 +70,6 @@
   "Choose a word": "Choose a word",
   "Dictionary": "Dictionary",
   "Other words": "Other words",
-  "Or write your own": "Or write your own",
   "Word": "Word",
   "Correct meaning": "Correct meaning",
   "Start next round": "Start next round",
@@ -81,5 +82,8 @@
   "Still choosing": "Still choosing",
   "Still thinking": "Still thinking",
   "Vote in": "Vote in",
-  "Voting board": "Voting board"
+  "Voting board": "Voting board",
+  "Answering": "Answering",
+  "Voting": "Voting",
+  "Write your own": "Write your own"
 }
