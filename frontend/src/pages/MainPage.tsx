@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
+import ProfilePreview from '../components/ProfilePreview.tsx'
 import { usePageTitle } from '../lib/react/hooks/usePageTitle.tsx'
 import { useLoc } from '../strings/loc.ts'
 
@@ -19,6 +20,8 @@ export default function MainPage() {
 
   return (
     <main className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
+      <ProfilePreview />
+      <hr className="my-8 border-zinc-200" />
       <h1 className="text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl">
         Erundopel
       </h1>
@@ -58,12 +61,6 @@ export default function MainPage() {
       )}
       <hr className="my-8 border-zinc-200" />
       <div className="flex gap-5">
-        <Link
-          className="font-semibold text-zinc-700 underline decoration-amber-300 decoration-4 underline-offset-4"
-          to="/profile"
-        >
-          {loc('Profile')}
-        </Link>
         <Link
           className="font-semibold text-zinc-700 underline decoration-amber-300 decoration-4 underline-offset-4"
           to="/rules"

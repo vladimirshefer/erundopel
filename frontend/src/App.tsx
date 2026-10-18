@@ -7,7 +7,6 @@ import GamePage from './pages/GamePage.tsx'
 import LobbyLoadingPage from './pages/LobbyLoadingPage.tsx'
 import LobbyPage from './pages/LobbyPage.tsx'
 import MainPage from './pages/MainPage.tsx'
-import PlayerProfilePage from './pages/PlayerProfilePage.tsx'
 import RulesPage from './pages/RulesPage.tsx'
 
 const queryClient = new QueryClient()
@@ -25,7 +24,6 @@ export default function App() {
               <Route path="/lobby/:code" element={<LobbyLoadingPage />} />
               <Route path="/lobby/:code/room" element={<LobbyPage />} />
               <Route path="/game/:code" element={<GamePage />} />
-              <Route path="/profile" element={<PlayerProfilePage />} />
               <Route path="/rules" element={<RulesPage />} />
               <Route path="*" element={<MainPage />} />
             </Routes>
