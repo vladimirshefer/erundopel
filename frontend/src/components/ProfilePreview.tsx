@@ -48,7 +48,7 @@ export default function ProfilePreview() {
       )}
       <img
         alt="Player Avatar"
-        className="size-70 border-zinc-950 bg-white object-cover"
+        className="size-70 object-cover"
         src={`https://gravatar.com/avatar/${Md5.hashStr(name || 'profile')}?d=robohash&s=300`}
       />
     </div>

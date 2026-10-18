@@ -132,14 +132,10 @@ export default function LobbyPage() {
       navigate(`/game/${lobby.code}`, { replace: true })
   }, [isPlaying, lobby, navigate])
 
-  async function joinLobby(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function joinLobby(name: string | undefined) {
     if (!code) return
 
-    const name = new FormData(event.currentTarget)
-      .get('name')
-      ?.toString()
-      .trim()
+    name = name?.trim()
     if (!name) {
       setError(loc('Enter your name'))
       return
@@ -162,6 +158,21 @@ export default function LobbyPage() {
     } catch {
       setError(loc('Could not join game'))
     }
+  }
+
+  function onJoinClick() {
+    const profileName = playerProfileRepository.getProfile()?.name
+    if (profileName) {
+      void joinLobby(profileName)
+    } else {
+      setJoinForm(true)
+    }
+  }
+
+  function onJoinFormSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const name = new FormData(event.currentTarget).get('name')?.toString()
+    void joinLobby(name)
   }
 
   function startGame() {
@@ -216,12 +227,12 @@ export default function LobbyPage() {
       <section className="mt-6 grid gap-4 sm:grid-cols-2">
         {players.map((player) => (
           <article
-            className="flex min-h-48 flex-col justify-between border-4 border-zinc-950 bg-amber-300 p-5 text-zinc-950 shadow-lg transition duration-300 hover:-translate-y-1"
+            className="flex min-h-48 flex-col items-center justify-between rounded-2xl border border-zinc-200 bg-amber-50 p-5 text-center text-zinc-950 shadow-lg transition duration-300 hover:-translate-y-1"
             key={player.id}
           >
             <img
               alt=""
-              className="size-32 bg-white object-cover sm:size-40"
+              className="size-32 object-cover sm:size-40"
               src={`https://gravatar.com/avatar/${Md5.hashStr(player.name)}?d=robohash&s=320`}
             />
             <div className="mt-5">
@@ -237,8 +248,8 @@ export default function LobbyPage() {
 
         {canJoin && lobby?.phase === 'lobby' && !joinForm && (
           <button
-            className="flex min-h-48 flex-col items-center justify-center border-4 border-dashed border-zinc-300 text-zinc-700 transition duration-300 hover:-translate-y-1 hover:border-zinc-950 hover:bg-zinc-100"
-            onClick={() => setJoinForm(true)}
+            className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 text-center text-zinc-700 transition duration-300 hover:-translate-y-1 hover:border-zinc-950 hover:bg-zinc-100"
+            onClick={onJoinClick}
             type="button"
           >
             <span className="text-6xl font-black">+</span>
@@ -248,8 +259,13 @@ export default function LobbyPage() {
 
         {canJoin && lobby?.phase === 'lobby' && joinForm && (
           <form
-            className="flex min-h-48 flex-col justify-center bg-zinc-950 p-4 text-white shadow-lg"
-            onSubmit={joinLobby}
+            className="flex min-h-48 flex-col items-center justify-center rounded-2xl bg-zinc-950 p-4 text-center text-white shadow-lg"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                setJoinForm(false)
+              }
+            }}
+            onSubmit={onJoinFormSubmit}
           >
             <label className="text-sm font-bold" htmlFor="name">
               {loc('Your name')}
@@ -257,7 +273,6 @@ export default function LobbyPage() {
             <input
               autoFocus
               className="mt-2 rounded-xl bg-white px-3 py-2 text-zinc-950 outline-none focus:ring-4 focus:ring-amber-300"
-              defaultValue={playerProfileRepository.getProfile()?.name}
               id="name"
               name="name"
             />
@@ -279,12 +294,12 @@ export default function LobbyPage() {
           <section className="mt-6 grid gap-4 sm:grid-cols-2">
             {spectators.map((spectator) => (
               <article
-                className="flex min-h-48 flex-col justify-between border-4 border-zinc-950 bg-white p-5 text-zinc-950 shadow-lg"
+                className="flex min-h-48 flex-col items-center justify-between rounded-2xl border border-zinc-200 bg-white p-5 text-center text-zinc-950 shadow-lg"
                 key={spectator.id}
               >
                 <img
                   alt=""
-                  className="size-32 bg-white object-cover sm:size-40"
+                  className="size-32 object-cover sm:size-40"
                   src={`https://gravatar.com/avatar/${Md5.hashStr(spectator.name)}?d=robohash&s=320`}
                 />
                 <p className="mt-5 text-2xl font-black leading-tight">
