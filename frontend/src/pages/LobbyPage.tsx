@@ -65,11 +65,11 @@ export default function LobbyPage() {
           }
           connectedSocket = connection.socket
           socket.current = connectedSocket
+          const profile = await playerProfileRepository.getProfile()
           const credentials = await lobbyRepository.spectate(
             connection.socket,
             code,
-            playerProfileRepository.getProfile()?.name ??
-              `Ghost-${crypto.randomUUID().slice(0, 8)}`,
+            profile?.name ?? `Ghost-${crypto.randomUUID().slice(0, 8)}`,
           )
           if (!active) return
           localStorage.setItem('erundopel.playerId', credentials.playerId)
@@ -124,11 +124,11 @@ export default function LobbyPage() {
             }
             connectedSocket = connection.socket
             socket.current = connectedSocket
+            const profile = await playerProfileRepository.getProfile()
             const credentials = await lobbyRepository.spectate(
               connection.socket,
               code,
-              playerProfileRepository.getProfile()?.name ??
-                `Ghost-${crypto.randomUUID().slice(0, 8)}`,
+              profile?.name ?? `Ghost-${crypto.randomUUID().slice(0, 8)}`,
             )
             if (!active) return
             localStorage.setItem('erundopel.playerId', credentials.playerId)
@@ -179,8 +179,8 @@ export default function LobbyPage() {
     }
   }
 
-  function onJoinClick() {
-    const profileName = playerProfileRepository.getProfile()?.name
+  async function onJoinClick() {
+    const profileName = (await playerProfileRepository.getProfile())?.name
     if (profileName) {
       void joinLobby(profileName)
     } else {

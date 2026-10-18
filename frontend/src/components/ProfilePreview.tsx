@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { FiEdit2 } from 'react-icons/fi'
 import { Md5 } from 'ts-md5'
@@ -6,17 +7,20 @@ import { useLoc } from '../strings/loc.ts'
 
 export default function ProfilePreview() {
   const loc = useLoc()
-  const [name, setName] = useState(
-    () => playerProfileRepository.getProfile()?.name ?? '',
-  )
+  const queryClient = useQueryClient()
+  const { data: profile } = useQuery({
+    queryKey: ['playerProfile'],
+    queryFn: () => playerProfileRepository.getProfile(),
+  })
   const [isEditing, setIsEditing] = useState(false)
+  const name = profile?.name ?? ''
 
   function saveName(value: string) {
     const profileName = value.trim()
     setIsEditing(false)
     if (!profileName || profileName === name) return
     playerProfileRepository.saveProfile({ name: profileName })
-    setName(profileName)
+    void queryClient.invalidateQueries({ queryKey: ['playerProfile'] })
   }
 
   return (

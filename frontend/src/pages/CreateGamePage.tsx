@@ -12,11 +12,12 @@ export default function CreateGamePage() {
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState('')
 
-  function createLobby() {
+  async function createLobby() {
     setIsCreating(true)
     setError('')
+    const profile = await playerProfileRepository.getProfile()
     lobbyRepository
-      .createLobby(playerProfileRepository.getProfile()?.name ?? loc('Host'))
+      .createLobby(profile?.name ?? loc('Host'))
       .then((lobby) => {
         localStorage.setItem('erundopel.playerId', lobby.credentials.playerId)
         navigate(`/lobby/${lobby.state.code}`, { replace: true })
