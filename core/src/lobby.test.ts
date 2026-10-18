@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { LobbyControllerImpl } from "./controllers/LobbyController.js";
 import { LobbyError, LobbyManager } from "./lobby.js";
-import { dispatchClientMessage, parseClientMessage } from "./protocol.js";
+import {
+  dispatchClientMessage,
+  parseClientMessage,
+  toClientError,
+} from "./protocol.js";
 
 test("creates a lobby with a player id outside its public state", () => {
   const manager = new LobbyManager();
@@ -353,6 +357,173 @@ test("maps WebSocket messages to core commands", () => {
     submitted.state.answerOptions?.some(
       (answer) => answer.text === "Ложное значение",
     ),
+  );
+});
+
+test("runs every client message endpoint through Protocol and LobbyController", () => {
+  const manager = new LobbyManager();
+  const lobby = manager.createLobby({ playerName: "Vladimir" });
+  const owner = lobby.credentials;
+  assert.ok(owner);
+  const ownerSession = { code: lobby.state.code, playerId: owner.playerId };
+  const controller = new LobbyControllerImpl(manager.execute.bind(manager));
+
+  const viewed = dispatchClientMessage(
+    parseClientMessage(
+      JSON.stringify({ type: "view", body: { code: lobby.state.code } }),
+    ),
+    undefined,
+    controller,
+  );
+  assert.equal(viewed.response?.type, "viewed");
+  assert.equal(viewed.viewCode, lobby.state.code);
+
+  const spectating = dispatchClientMessage(
+    parseClientMessage(
+      JSON.stringify({
+        type: "spectate",
+        body: { code: lobby.state.code, playerName: "Anna" },
+      }),
+    ),
+    undefined,
+    controller,
+  );
+  const spectatorSession = spectating.nextSession;
+  assert.ok(spectatorSession);
+  assert.equal(spectating.response?.type, "spectating");
+
+  const joined = dispatchClientMessage(
+    parseClientMessage(
+      JSON.stringify({ type: "join", body: { playerName: "Anna" } }),
+    ),
+    spectatorSession,
+    controller,
+  );
+  const playerSession = joined.nextSession;
+  assert.ok(playerSession);
+  assert.equal(joined.response?.type, "joined");
+  assert.equal(playerSession.playerId, spectatorSession.playerId);
+
+  manager.execute(lobby.state.code, {
+    type: "disconnect",
+    playerId: playerSession.playerId,
+  });
+  const resumed = dispatchClientMessage(
+    parseClientMessage(
+      JSON.stringify({
+        type: "reconnect",
+        body: { code: lobby.state.code, playerId: playerSession.playerId },
+      }),
+    ),
+    undefined,
+    controller,
+  );
+  assert.equal(resumed.response?.type, "resumed");
+  assert.equal(resumed.nextSession?.playerId, playerSession.playerId);
+
+  const task = {
+    text: "Слово",
+    correctAnswer: { text: "Значение" },
+    wrongAnswers: [{ text: "Ложное значение" }],
+  };
+  const started = dispatchClientMessage(
+    parseClientMessage(JSON.stringify({ type: "startTask", body: { task } })),
+    ownerSession,
+    controller,
+  );
+  assert.equal(started.state.phase, "answering");
+
+  dispatchClientMessage(
+    parseClientMessage(
+      JSON.stringify({
+        type: "submitAnswer",
+        body: { answer: { text: "Вариант Владимира" } },
+      }),
+    ),
+    ownerSession,
+    controller,
+  );
+  const voting = dispatchClientMessage(
+    parseClientMessage(
+      JSON.stringify({
+        type: "submitAnswer",
+        body: { answer: { text: "Вариант Анны" } },
+      }),
+    ),
+    playerSession,
+    controller,
+  );
+  const ownerAnswerId = voting.state.answerOptions?.find(
+    (answer) => answer.text === "Вариант Владимира",
+  )?.id;
+  assert.ok(ownerAnswerId);
+  assert.equal(voting.state.phase, "voting");
+
+  dispatchClientMessage(
+    parseClientMessage(
+      JSON.stringify({ type: "vote", body: { answerId: "correct" } }),
+    ),
+    ownerSession,
+    controller,
+  );
+  const results = dispatchClientMessage(
+    parseClientMessage(
+      JSON.stringify({ type: "vote", body: { answerId: ownerAnswerId } }),
+    ),
+    playerSession,
+    controller,
+  );
+  assert.equal(results.state.phase, "results");
+
+  const nextTask = dispatchClientMessage(
+    parseClientMessage(JSON.stringify({ type: "nextTask", body: { task } })),
+    ownerSession,
+    controller,
+  );
+  assert.equal(nextTask.state.phase, "answering");
+
+  const left = dispatchClientMessage(
+    parseClientMessage(JSON.stringify({ type: "leave", body: {} })),
+    playerSession,
+    controller,
+  );
+  assert.equal(left.response?.type, "left");
+  assert.equal(left.detach, true);
+
+  const closed = dispatchClientMessage(
+    parseClientMessage(JSON.stringify({ type: "closeLobby", body: {} })),
+    ownerSession,
+    controller,
+  );
+  assert.equal(closed.state.closed, true);
+});
+
+test("keeps Protocol generic and maps request errors", () => {
+  const message = parseClientMessage(
+    JSON.stringify({ type: "futureEndpoint", body: { arbitrary: true } }),
+  );
+  assert.deepEqual(message, {
+    type: "futureEndpoint",
+    body: { arbitrary: true },
+  });
+
+  const controller = new LobbyControllerImpl(() => {
+    throw new Error("Controller should not be called.");
+  });
+  assert.throws(
+    () => dispatchClientMessage(message, undefined, controller),
+    /Unknown message type: futureEndpoint/,
+  );
+  assert.deepEqual(toClientError(new Error("Malformed body.")), {
+    type: "error",
+    error: { code: "BAD_REQUEST", message: "Malformed body." },
+  });
+  assert.deepEqual(
+    toClientError(new LobbyError("LOBBY_NOT_FOUND", "Missing.")),
+    {
+      type: "error",
+      error: { code: "LOBBY_NOT_FOUND", message: "Missing." },
+    },
   );
 });
 

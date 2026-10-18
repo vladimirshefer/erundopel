@@ -98,7 +98,7 @@ export class GameState {
         : undefined,
       players: people.filter((player) => player.playing).map(({ playing: _, ...player }) => player),
       spectators: people.filter((player) => !player.playing).map(({ playing: _, ...player }) => player),
-    }
+    } satisfies GameStateSnapshotDto
   }
 
   #assertOpen(): void {
