@@ -4,6 +4,7 @@ import { LanguageContextProvider } from './contexts/LanguageContext.tsx'
 import LanguageSelector from './components/LanguageSelector.tsx'
 import CreateGamePage from './pages/CreateGamePage.tsx'
 import GamePage from './pages/GamePage.tsx'
+import GameSelectorPage from './pages/GameSelectorPage.tsx'
 import LobbyLoadingPage from './pages/LobbyLoadingPage.tsx'
 import LobbyPage from './pages/LobbyPage.tsx'
 import MainPage from './pages/MainPage.tsx'
@@ -20,6 +21,7 @@ export default function App() {
             <LanguageSelector />
             <Routes>
               <Route path="/" element={<MainPage />} />
+              <Route path="/games" element={<GameSelectorPage />} />
               <Route path="/create" element={<CreateGamePage />} />
               <Route path="/lobby/:code" element={<LobbyLoadingPage />} />
               <Route path="/lobby/:code/room" element={<LobbyPage />} />

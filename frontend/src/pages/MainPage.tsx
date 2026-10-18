@@ -31,7 +31,7 @@ export default function MainPage() {
       <p className="mt-7">
         <Link
           className="inline-flex rounded-xl bg-zinc-950 px-5 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-zinc-700"
-          to="/create"
+          to="/games"
         >
           {loc('Create game')}
         </Link>
