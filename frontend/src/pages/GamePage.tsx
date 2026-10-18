@@ -136,7 +136,7 @@ export default function GamePage() {
       <section className="mt-5 flex flex-wrap gap-2" aria-label={loc('Players')}>
         {lobby.players.map((item) => (
           <div className="flex items-center gap-2 border-2 border-zinc-950 bg-amber-100 px-2 py-1.5" key={item.id}>
-            <img alt="" className="size-7 border border-zinc-950 bg-white" src={`https://gravatar.com/avatar/${Md5.hashStr(item.id)}?d=robohash&s=56`} />
+            <img alt="" className="size-7 bg-white" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=56`} />
             <span className="font-bold text-zinc-950">{item.name}</span>
             <span className="text-sm font-black text-zinc-600">{item.score}</span>
           </div>
@@ -172,7 +172,7 @@ export default function GamePage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {lobby.players.map((item) => (
                 <article className={`flex items-center gap-3 border-4 border-zinc-950 p-3 shadow-[4px_4px_0_0_#18181b] ${item.answered ? 'bg-amber-300' : 'bg-white'}`} key={item.id}>
-                  <img alt="" className="size-12 border-2 border-zinc-950 bg-white" src={`https://gravatar.com/avatar/${Md5.hashStr(item.id)}?d=robohash&s=96`} />
+                  <img alt="" className="size-12 bg-white" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=96`} />
                   <div>
                     <p className="font-black text-zinc-950">{item.name}</p>
                     <p className="mt-0.5 text-sm font-bold text-zinc-700">{item.answered ? loc('Answer in') : loc('Still thinking')}</p>
@@ -221,7 +221,7 @@ export default function GamePage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {lobby.players.map((item) => (
                 <article className={`flex items-center gap-3 border-4 border-zinc-950 p-3 shadow-[4px_4px_0_0_#18181b] ${item.voted ? 'bg-amber-300' : 'bg-white'}`} key={item.id}>
-                  <img alt="" className="size-12 border-2 border-zinc-950 bg-white" src={`https://gravatar.com/avatar/${Md5.hashStr(item.id)}?d=robohash&s=96`} />
+                  <img alt="" className="size-12 bg-white" src={`https://gravatar.com/avatar/${Md5.hashStr(item.name)}?d=robohash&s=96`} />
                   <div>
                     <p className="font-black text-zinc-950">{item.name}</p>
                     <p className="mt-0.5 text-sm font-bold text-zinc-700">{item.voted ? loc('Vote in') : loc('Still choosing')}</p>
@@ -247,7 +247,7 @@ export default function GamePage() {
                 <div className="mt-6 flex items-center gap-2">
                   {lobby.votes?.filter((vote) => vote.answerId === answer.id).map((vote) => {
                     const voter = lobby.players.find((item) => item.id === vote.playerId)
-                    return voter && <img alt={voter.name} className="size-10 border-2 border-zinc-950 bg-white" key={voter.id} src={`https://gravatar.com/avatar/${Md5.hashStr(voter.id)}?d=robohash&s=80`} title={voter.name} />
+                    return voter && <img alt={voter.name} className="size-10 bg-white" key={voter.id} src={`https://gravatar.com/avatar/${Md5.hashStr(voter.name)}?d=robohash&s=80`} title={voter.name} />
                   })}
                   {!lobby.votes?.some((vote) => vote.answerId === answer.id) && <p className="text-sm font-bold text-zinc-500">{loc('No votes')}</p>}
                 </div>

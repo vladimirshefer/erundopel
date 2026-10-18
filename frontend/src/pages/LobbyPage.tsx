@@ -221,8 +221,8 @@ export default function LobbyPage() {
           >
             <img
               alt=""
-              className="size-24 border-2 border-zinc-950 bg-white object-cover sm:size-28"
-              src={`https://gravatar.com/avatar/${Md5.hashStr(player.id)}?d=robohash&s=224`}
+              className="size-32 bg-white object-cover sm:size-40"
+              src={`https://gravatar.com/avatar/${Md5.hashStr(player.name)}?d=robohash&s=320`}
             />
             <div className="mt-5">
               <p className="text-2xl font-black leading-tight">{player.name}</p>
@@ -284,8 +284,8 @@ export default function LobbyPage() {
               >
                 <img
                   alt=""
-                  className="size-24 border-2 border-zinc-950 bg-white object-cover sm:size-28"
-                  src={`https://gravatar.com/avatar/${Md5.hashStr(spectator.id)}?d=robohash&s=224`}
+                  className="size-32 bg-white object-cover sm:size-40"
+                  src={`https://gravatar.com/avatar/${Md5.hashStr(spectator.name)}?d=robohash&s=320`}
                 />
                 <p className="mt-5 text-2xl font-black leading-tight">
                   {spectator.name}
