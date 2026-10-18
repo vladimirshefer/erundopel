@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import QrCreator from 'qr-creator'
 import { Md5 } from 'ts-md5'
 import type { LobbyPlayerDto } from '../dto/LobbyPlayerDto.ts'
 import type { GameStateSnapshotDto } from '../dto/GameStateSnapshotDto.ts'
@@ -22,8 +23,26 @@ export default function LobbyPage() {
   const [canJoin, setCanJoin] = useState(false)
   const [error, setError] = useState('')
   const [isLinkCopied, setIsLinkCopied] = useState(false)
+  const qrCodeRef = useRef<HTMLDivElement>(null)
   const isPlaying =
     lobby?.players.some((player) => player.id === playerId) ?? false
+
+  useEffect(() => {
+    if (!code || !qrCodeRef.current) return
+
+    qrCodeRef.current.innerHTML = ''
+    QrCreator.render(
+      {
+        text: `${window.location.origin}/lobby/${code}`,
+        radius: 0,
+        ecLevel: 'M',
+        fill: '#09090b',
+        background: '#ffffff',
+        size: 260,
+      },
+      qrCodeRef.current,
+    )
+  }, [code])
 
   useEffect(() => {
     if (!code) {
@@ -217,6 +236,9 @@ export default function LobbyPage() {
           >
             {isLinkCopied ? loc('Link copied') : loc('Copy link')}
           </button>
+        </div>
+        <div className="mt-6 flex justify-center">
+          <div className="rounded-2xl bg-white p-4" ref={qrCodeRef} />
         </div>
       </section>
 
