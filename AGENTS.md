@@ -22,6 +22,7 @@
 - Game state management, lobby, players, tasks, game progression management.
 - Any actions taken by user are encapsulated in a Controller interface+class (matching the Repository in Frontend module). Namin convention - `controllers/{EntityName}Controller.ts`. Each repository is managing its own entity type - "Lobby", "Answer", "Player", etc. Repository is an interface with clear CRUD operations at first. Each repository has the `{EntityName}ControllerImpl` class implementing the interface. All the http/websocket communications is encapsulated there.
 - All entities (DTOs) used in client-server communication should be in a separate file named `{EntityName}Dto.ts` in `dto` folder.
+- All Entity (DTOs) types should be defined as `interface` and not as `type`.
 
 ### AI-Agents rules
 - Do not create "helper" functions until explicitly asked to.
